@@ -177,6 +177,39 @@ public class Model extends Observable {
      */
     public static boolean atLeastOneMoveExists(Board b) {
         // TODO: Fill in this function.
+        // 检查是否存在相邻两个数相同
+        int b_size=b.size();
+        for(int i=0;i<b_size;++i){
+            for(int j=0;j<b_size;++j){
+                if(b.tile(i,j)==null)continue;
+                int curr_val=b.tile(i,j).value();
+                // 记录上下左右邻居值
+                int up=-1;int down=-1;int left=-1;int right=-1;
+                // 除第一行都有上邻居
+                if(j!=0){
+                    // 邻居为空，直接返回
+                    if(b.tile(i,j-1)==null)return true;
+                    up=b.tile(i,j-1).value();
+                }
+                // 除最后一行都有下邻居
+                if(j!=b_size-1){
+                    if(b.tile(i,j+1)==null)return true;
+                    down=b.tile(i,j+1).value();
+                }
+                // 除第一列都有左邻居
+                if(i!=0){
+                    if(b.tile(i-1,j)==null)return true;
+                    left=b.tile(i-1,j).value();
+                }
+                // 除最后一列都有右邻居
+                if(i!=b_size-1){
+                    if(b.tile(i+1,j)==null)return true;
+                    right=b.tile(i+1,j).value();
+                }
+
+                if(up==curr_val||down==curr_val||left==curr_val||right==curr_val)return true;
+            }
+        }
         return false;
     }
 
