@@ -5,7 +5,7 @@ import java.util.Observable;
 
 
 /** The state of a game of 2048.
- *  @author TODO: YOUR NAME HERE
+ *  @author LiuYing TODO: YOUR NAME HERE
  */
 public class Model extends Observable {
     /** Current contents of the board. */
@@ -106,6 +106,42 @@ public class Model extends Observable {
      *    value, then the leading two tiles in the direction of motion merge,
      *    and the trailing tile does not.
      * */
+
+
+    public boolean process_col(int col){
+        boolean changed=false;
+        int[] TileMerged=new int[4];
+        for(int i= board.size()-1;i>=0;--i){
+            int newRow=MovetoWhichRow(col, i,TileMerged);
+            if(newRow!=i&&TileMerged[newRow]==0){
+                boolean isMerged=board.move(col,newRow,board.tile(col,i));
+                changed=true;
+                //如果出现合并
+                if(isMerged){
+                    TileMerged[newRow]=1;
+                    int curr_value=board.tile(col,newRow).value();
+                    score+=curr_value;
+                }
+            }
+        }
+        return changed;
+    }
+    public int MovetoWhichRow(int col, int row,int[] TileMoved){
+        Tile t=board.tile(col,row);
+        // 如果t为空或是顶行，则不用移动
+        if(t==null||row==board.size()-1)return row;
+        int moveto=row;
+        for(int r=row+1;r<board.size();++r){
+            if(TileMoved[r]==1)continue;
+            Tile curr_tile=tile(col,r);
+            if(curr_tile==null)moveto=r;
+            else if(curr_tile.value()==t.value()){
+                moveto=r;
+                break;
+            }
+        }
+        return moveto;
+    }
     public boolean tilt(Side side) {
         boolean changed;
         changed = false;
@@ -113,6 +149,18 @@ public class Model extends Observable {
         // TODO: Modify this.board (and perhaps this.score) to account
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
+        // 如果没有可以移动的直接返回
+        if(!atLeastOneMoveExists(this.board))return changed;
+
+        // 如果不是向上移动，则更改视角
+        this.board.setViewingPerspective(side);
+        // 统一按向上处理
+        for(int col=0;col<board.size();++col) {
+            boolean currColChanged=process_col(col);
+            if(currColChanged)changed=true;
+        }
+        // 将视角恢复原状
+        this.board.setViewingPerspective(Side.NORTH);
 
         checkGameOver();
         if (changed) {
