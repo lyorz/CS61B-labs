@@ -107,4 +107,26 @@ public class TestUpOnly extends TestUtils {
         checkChanged(Side.NORTH, true, changed);
         checkModel(after, 4, 0, prevBoard, Side.NORTH);
     }
+
+    @Test
+    public void testUpBetweenValues(){
+        int[][] before=new int[][]{
+                {2, 256, 128, 8},
+                {0, 64, 16, 2},
+                {0, 0, 4, 2},
+                {0, 0, 2, 4},
+        };
+        int[][] after=new int[][]{
+                {2, 256, 128, 8},
+                {0, 64, 16, 4},
+                {0, 0, 4, 4},
+                {0, 0, 2, 0},
+        };
+
+        updateModel(before,0,0,false);
+        String prevBoard=model.toString();
+        boolean changed=model.tilt(Side.NORTH);
+        checkChanged(Side.NORTH,true,changed);
+        checkModel(after,4,0,prevBoard,Side.NORTH);
+    }
 }

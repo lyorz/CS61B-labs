@@ -126,6 +126,7 @@ public class Model extends Observable {
         }
         return changed;
     }
+
     public int MovetoWhichRow(int col, int row,int[] TileMoved){
         Tile t=board.tile(col,row);
         // 如果t为空或是顶行，则不用移动
@@ -137,6 +138,9 @@ public class Model extends Observable {
             if(curr_tile==null)moveto=r;
             else if(curr_tile.value()==t.value()){
                 moveto=r;
+                break;
+            }
+            else{
                 break;
             }
         }
