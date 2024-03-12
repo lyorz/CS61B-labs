@@ -20,7 +20,7 @@ public class AListNoResizing<Item> {
 
     /** Creates an empty list. */
     public AListNoResizing() {
-        items = (Item[]) new Object[1000];
+        items = (Item[]) new Object[5000];
         size = 0;
     }
 
