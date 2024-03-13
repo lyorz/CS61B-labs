@@ -173,7 +173,7 @@ public class ArrayDeque<T> {
         }
 
         // 如果占用率低于25 数组缩容
-        if(size<(capacity/4)){
+        if(capacity>=16 && size<(capacity/4)){
             resize(capacity/4);
         }
 
