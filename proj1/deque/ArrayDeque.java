@@ -30,30 +30,24 @@ public class ArrayDeque<T> {
     private void resize(int newCapacity){
         Object[] newItems=new Object[newCapacity];
 
-        //索引偏移量：防止缩容后原索引超出数组边界
-        int indexDiff=0;
-        if(start>=newCapacity){
-            indexDiff=start;
-        }
         // case1: 0:null,1:null,2:start,...5:end,6:null,7:null
         if(start<=end){
-            for(int i=start;i<=end;++i){
-                newItems[i-indexDiff]=items[i];
+            for(int i=0;i<size;++i){
+                newItems[i]=items[i+start];
             }
         }
         // case2: 0:x,1:y,...3:end,...,6:start,7:z
         else{
-            for(int i=start;i<capacity;++i){
-                newItems[i-indexDiff]=items[i];
+            for(int i=0;i<capacity-start;++i){
+                newItems[i]=items[i+start];
             }
+
             for(int i=0;i<=end;++i){
-                newItems[i]=items[i];
+                newItems[capacity-start+i]=items[i];
             }
         }
-        start-=indexDiff;
-        if(end>=indexDiff){
-            end-=indexDiff;
-        }
+        start=0;
+        end=size-1;
         capacity=newCapacity;
         items=newItems;
     }
@@ -68,7 +62,7 @@ public class ArrayDeque<T> {
         }
 
         // 数组已满 扩容
-        if(size==capacity){
+        if(size>capacity){
             resize(capacity*2);
         }
 
@@ -94,8 +88,8 @@ public class ArrayDeque<T> {
         }
 
         // 数组已满 扩容
-        if(size==capacity){
-            resize(capacity+1);
+        if(size>capacity){
+            resize(capacity*2);
         }
 
         // case1 0:null,1:null,...3:start,4:x,....7:end
@@ -107,8 +101,8 @@ public class ArrayDeque<T> {
         else{
             end++;
         }
-
         items[end]=item;
+
     }
     // 判断队列是否为空，空队列返回true
     public boolean isEmpty(){
@@ -122,19 +116,8 @@ public class ArrayDeque<T> {
     // 从前向后打印元素 以空格分隔
     // 打印完成后打印一个新行
     public void printDeque(){
-        if(start<=end){
-            for(int i=start;i<=end;++i){
-                System.out.print(items[i]+" ");
-            }
-        }
-        else{
-            for(int i=start;i<capacity;++i){
-                System.out.print(items[i]+" ");
-            }
-            for(int i=0;i<=end;++i){
-                System.out.print(items[i]+" ");
-            }
-
+        for(int i=0;i<size;++i){
+            System.out.print(get(i)+" ");
         }
         System.out.println();
     }
@@ -152,6 +135,11 @@ public class ArrayDeque<T> {
         size--;
         T firstItem= (T) items[start];
 
+        // case3: 0:start end,1:null....7:null 不做处理
+        if(start==end){
+            return firstItem;
+        }
+
         // case1: 0:x,1:y,2:end,...7:start
         if(start==capacity-1){
             start=0;// 0:start(x),1:y,2:z,....7:null
@@ -162,7 +150,7 @@ public class ArrayDeque<T> {
             start++;// 0:null,1:start(x),2:end,...7:null
                     // 0:x,1:end,...6:null,7:start(y)
         }
-        // case3: 0:start end,1:null....7:null 不做处理
+
 
         return firstItem;
     }
@@ -180,6 +168,11 @@ public class ArrayDeque<T> {
         size--;
         T firstItem= (T) items[end];
 
+        // case3: 0:start end,1:null....7:null 不做处理
+        if(start==end){
+            return firstItem;
+        }
+
         // case1: 0:end,....6:start,7:x
         if(end==0){
             end=capacity-1;
@@ -190,7 +183,6 @@ public class ArrayDeque<T> {
             end--;// 0:start,1:end(x),2:null,...7:null
                   // 0:x,1:z,2:end...6:start,7:y
         }
-        // case3: 0:start end,1:null....7:null 不做处理
 
         return firstItem;
     }

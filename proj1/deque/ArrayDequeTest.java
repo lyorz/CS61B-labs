@@ -1,7 +1,11 @@
 package deque;
 
+import org.checkerframework.checker.units.qual.A;
 import org.junit.Assert;
 import org.junit.Test;
+
+import javax.swing.text.html.HTMLDocument;
+
 import static org.junit.Assert.*;
 
 
@@ -137,6 +141,31 @@ public class ArrayDequeTest  {
         lld1.printDeque();
         Assert.assertEquals(0,(int)lld1.get(4));
         Assert.assertEquals(5,5);
+    }
+
+    @Test
+    public void fillUpEmptyFillUpAgain(){
+        ArrayDeque<Integer> lld1=new ArrayDeque<>();
+        for(int i=0;i<4;++i){
+            lld1.addFirst(i);
+        }
+        for(int i=4;i<8;++i){
+            lld1.addLast(i);
+        }
+
+        for(int i=0;i<8;++i){
+            lld1.removeLast();
+        }
+        lld1.printDeque();
+
+        for(int i=0;i<4;++i){
+            lld1.addFirst(i);
+        }
+        for(int i=4;i<8;++i){
+            lld1.addLast(i);
+        }
+        lld1.printDeque();
+
     }
 }
 
