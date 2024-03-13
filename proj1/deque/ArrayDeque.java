@@ -1,9 +1,5 @@
 package deque;
 
-import afu.org.checkerframework.checker.oigj.qual.O;
-
-import java.lang.reflect.Field;
-
 public class ArrayDeque<T> {
     private Object[] items;
     private int start;      //start指向队列第一个元素

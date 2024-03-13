@@ -1,7 +1,5 @@
 package deque;
 
-import net.sf.saxon.tree.linked.LinkedBuilderMonitor;
-
 public class LinkedListDeque<T> {
 
     public class LinkedNode{
