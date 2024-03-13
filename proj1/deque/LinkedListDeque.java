@@ -52,15 +52,14 @@ public class LinkedListDeque<T> {
     public int size(){
         return size;
     }
+
     // 从第一个到最后一个打印双端队列中的项目，以空格分割
     // 打印完后打印一个新行
     public void printDeque(){
-        if(size>0){
-            LinkedNode node=head_sentinel.next;
-            for(int i=0;i<size;++i){
-                System.out.print(node.item+" ");
-                node=node.next;
-            }
+        LinkedNode node=head_sentinel.next;
+        for(int i=0;i<size;++i){
+            System.out.print(node.item+" ");
+            node=node.next;
         }
         System.out.println();
     }
@@ -83,6 +82,7 @@ public class LinkedListDeque<T> {
         if(size==0){
             return null;
         }
+
         LinkedNode node=rear_sentinel.last;
         node.last.next=rear_sentinel;
         rear_sentinel.last=node.last;
