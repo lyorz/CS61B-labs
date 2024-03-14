@@ -1,6 +1,6 @@
 package deque;
 
-public class LinkedListDeque<T> {
+public class LinkedListDeque<T> implements Deque<T> {
 
     public class LinkedNode{
         public T item;
@@ -38,13 +38,6 @@ public class LinkedListDeque<T> {
         rear_sentinel.last.next=node;
         rear_sentinel.last=node;
         size++;
-    }
-    // 判断双端队列是否为空，空则返回true
-    public boolean isEmpty(){
-        if(size==0){
-            return true;
-        }
-        return false;
     }
     // 返回双端队列中项目数
     public int size(){

@@ -1,6 +1,6 @@
 package deque;
 
-public class ArrayDeque<T> {
+public class ArrayDeque<T> implements Deque<T> {
     private Object[] items;
     private int start;      //start指向队列第一个元素
     private int end;        //end指向队列最后一个元素
@@ -104,13 +104,7 @@ public class ArrayDeque<T> {
         items[end]=item;
 
     }
-    // 判断队列是否为空，空队列返回true
-    public boolean isEmpty(){
-        if(size>0){
-            return false;
-        }
-        return true;
-    }
+
     // 返回队列元素数
     public int size(){return size;}
     // 从前向后打印元素 以空格分隔
