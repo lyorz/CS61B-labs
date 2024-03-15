@@ -1,5 +1,7 @@
 package deque;
 
+import afu.org.checkerframework.checker.oigj.qual.O;
+
 public class ArrayDeque<T> implements Deque<T> {
     private Object[] items;
     private int start;      //start指向队列第一个元素
@@ -17,6 +19,13 @@ public class ArrayDeque<T> implements Deque<T> {
         end=0;
     }
 
+    public ArrayDeque(int c){
+        capacity=c;
+        items=new Object[capacity];
+        size=0;
+        start=0;
+        end=0;
+    }
     //测试用1：获取队首索引
     public int getStart(){
         return start;
@@ -32,7 +41,7 @@ public class ArrayDeque<T> implements Deque<T> {
 
         // case1: 0:null,1:null,2:start,...5:end,6:null,7:null
         if(start<=end){
-            for(int i=0;i<size;++i){
+            for(int i=0;i<size-1;++i){
                 newItems[i]=items[i+start];
             }
         }
