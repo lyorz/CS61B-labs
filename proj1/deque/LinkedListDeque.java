@@ -4,10 +4,10 @@ import java.util.Iterator;
 
 public class LinkedListDeque<T> implements Deque<T> {
 
-    public class LinkedNode{
-        public T item;
-        public LinkedNode last;
-        public LinkedNode next;
+    private class LinkedNode{
+        private T item;
+        private LinkedNode last;
+        private LinkedNode next;
 
         public LinkedNode(T i,LinkedNode n,LinkedNode l){
             item=i;
@@ -30,15 +30,23 @@ public class LinkedListDeque<T> implements Deque<T> {
     public void addFirst(T item)
     {
         LinkedNode node=new LinkedNode(item,head_sentinel.next,head_sentinel);
-        head_sentinel.next.last=node;
+        LinkedNode srcFirstNode=head_sentinel.next;
+
+        srcFirstNode.last=node;
         head_sentinel.next=node;
+        node.next=srcFirstNode;
+
         size++;
     }
     // 在双端队列后添加item
     public void addLast(T item){
         LinkedNode node=new LinkedNode(item,rear_sentinel,rear_sentinel.last);
-        rear_sentinel.last.next=node;
-        rear_sentinel.last=node;
+        LinkedNode srcLastNode=rear_sentinel.last;
+
+        srcLastNode.next=node;
+        node.last=srcLastNode;
+        node.next=rear_sentinel;
+
         size++;
     }
     // 返回双端队列中项目数
@@ -62,12 +70,15 @@ public class LinkedListDeque<T> implements Deque<T> {
         if(size==0){
             return null;
         }
+        T it=get(0);
         // delete the first LinkedNode
         LinkedNode node=head_sentinel.next;
         head_sentinel.next=node.next;
-        T it=node.item;
-        node=null;
-        size--;
+        node.next.last=head_sentinel;
+
+        node.last=null;
+        node.next=null;
+        size-=1;
         return it;
     }
     // 删除并返回双端队列后面的项目。如果不存在返回null
@@ -76,13 +87,14 @@ public class LinkedListDeque<T> implements Deque<T> {
             return null;
         }
 
+        T it=get(size-1);
+
         LinkedNode node=rear_sentinel.last;
         node.last.next=rear_sentinel;
         rear_sentinel.last=node.last;
         size--;
-
-        T it=node.item;
-        node=null;
+        node.last=null;
+        node.next=null;
         return it;
     }
     // 迭代获取给定索引处的项目，0表示队首第一个元素（非sentinel）
@@ -154,6 +166,9 @@ public class LinkedListDeque<T> implements Deque<T> {
         }
 
         LinkedListDeque<T> others=(LinkedListDeque<T>) o;
+        if(others.size()!=size){
+            return false;
+        }
 
         for(int i=0;i<size;++i){
             if(others.get(i)!=get(i)){
