@@ -1,8 +1,6 @@
 package deque;
-import com.puppycrawl.tools.checkstyle.checks.indentation.SwitchHandler;
-
 import java.util.Iterator;
-public class ArrayDeque<T> implements Deque<T>{
+public class ArrayDeque<T> implements Deque<T>,Iterable<T>{
     private Object[] items;
     private int start;      //start指向队列第一个元素
     private int end;        //end指向队列最后一个元素
@@ -18,23 +16,6 @@ public class ArrayDeque<T> implements Deque<T>{
         start=0;
         end=0;
     }
-
-    public ArrayDeque(int c){
-        capacity=c;
-        items=new Object[capacity];
-        size=0;
-        start=0;
-        end=0;
-    }
-    //测试用1：获取队首索引
-    public int getStart(){
-        return start;
-    }
-    //测试用2：获取队尾索引
-    public int getEnd(){
-        return end;
-    }
-
     // 数组扩容/缩容
     private void resize(int newCapacity){
         Object[] newItems=new Object[newCapacity];
@@ -277,13 +258,14 @@ public class ArrayDeque<T> implements Deque<T>{
     @Override
     public boolean equals(Object o){
         if(o==null){return false;}
-        if(!(o instanceof ArrayDeque)){return false;}
+        if(!(o instanceof Deque)){return false;}
+        if(o==this){return true;}
 
-        ArrayDeque<T> others=(ArrayDeque<T>) o;
+        Deque<T> others=(Deque<T>) o;
         if(others.size()!=size){return false;}
 
         for(int i=0;i<size;++i){
-            if(get(i)!=others.get(i)){
+            if(!others.get(i).equals(get(i))){
                 return false;
             }
         }
