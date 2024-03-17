@@ -61,7 +61,7 @@ public class HarpString {
     public void tic() {
         double front=buffer.removeFirst();
         double next=buffer.get(0);
-        double newDouble=(front+next)/2*DECAY;
+        double newDouble=-(front+next)/2*DECAY;
         buffer.addLast(newDouble);
     }
 

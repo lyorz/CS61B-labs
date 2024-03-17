@@ -1,8 +1,8 @@
 package deque;
+import com.puppycrawl.tools.checkstyle.checks.indentation.SwitchHandler;
 
-import afu.org.checkerframework.checker.oigj.qual.O;
-
-public class ArrayDeque<T> implements Deque<T> {
+import java.util.Iterator;
+public class ArrayDeque<T> implements Deque<T>{
     private Object[] items;
     private int start;      //start指向队列第一个元素
     private int end;        //end指向队列最后一个元素
@@ -233,5 +233,60 @@ public class ArrayDeque<T> implements Deque<T> {
             }
         }
         return false;
+    }
+
+    // 迭代器实现：
+    // step1：定义迭代器类
+    private class ArrayDequeIterator implements Iterator<T>{
+        private int wizPos;
+        public ArrayDequeIterator(){
+            wizPos=start;
+        }
+        public boolean hasNext(){
+            if(indexIsValid(wizPos)){
+                return true;
+            }
+            return false;
+        }
+
+        public T next(){
+            T returnItem=(T) items[wizPos];
+            // case1: 0:start,1:x,2:y,....5:end,...7:null
+            // or:    0:null,1:null,2:start,....5:end,...7:null
+            if(start<=end){
+                wizPos++;
+            }
+            // case2: 0:x,2:end,....5:start,6:
+            else{
+                if(wizPos==capacity-1){
+                    wizPos=0;
+                }
+                else{
+                    wizPos++;
+                }
+            }
+            return returnItem;
+        }
+    }
+    // step2: 实现iterator方法
+    public Iterator<T> iterator(){
+        return new ArrayDequeIterator();
+    }
+
+    // 判断对象是否是某一个类的实例
+    @Override
+    public boolean equals(Object o){
+        if(o==null){return false;}
+        if(!(o instanceof ArrayDeque)){return false;}
+
+        ArrayDeque<T> others=(ArrayDeque<T>) o;
+        if(others.size()!=size){return false;}
+
+        for(int i=0;i<size;++i){
+            if(get(i)!=others.get(i)){
+                return false;
+            }
+        }
+        return true;
     }
 }

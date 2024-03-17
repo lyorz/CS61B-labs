@@ -6,6 +6,8 @@ import org.junit.Test;
 
 import javax.swing.text.html.HTMLDocument;
 
+import java.util.Iterator;
+
 import static org.junit.Assert.*;
 
 
@@ -165,6 +167,39 @@ public class ArrayDequeTest  {
             lld1.addLast(i);
         }
         lld1.printDeque();
+    }
+    @Test
+    public void EqualsTest(){
+        ArrayDeque<Integer> l=new ArrayDeque<>();
+        LinkedListDeque<Integer> l2=new LinkedListDeque<>();
+        ArrayDeque<Integer> l3=new ArrayDeque<>();
+
+
+        for(int i=0;i<5;++i){
+            l.addLast(i);
+            l3.addFirst(i);
+        }
+        ArrayDeque<Integer> l4=l;
+
+        Assert.assertEquals(l.equals(l),true);
+        Assert.assertEquals(l.equals(l3),false);
+        Assert.assertEquals(l.equals(l),true);
+        Assert.assertEquals(l.equals(l2),false);
+    }
+
+    @Test
+    public void IteratorTest(){
+        ArrayDeque<Integer> ad=new ArrayDeque<>();
+        for(int i=0;i<1000;++i){
+            ad.addLast(i);
+        }
+
+        int index=0;
+        Iterator<Integer> it=ad.iterator();
+        while(it.hasNext()){
+            Assert.assertEquals(ad.get(index),it.next());
+            index+=1;
+        }
 
     }
 }
