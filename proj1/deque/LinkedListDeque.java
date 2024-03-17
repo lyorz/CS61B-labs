@@ -2,7 +2,7 @@ package deque;
 
 import java.util.Iterator;
 
-public class LinkedListDeque<T> implements Deque<T> {
+public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
 
     private class LinkedNode{
         private T item;
@@ -74,7 +74,7 @@ public class LinkedListDeque<T> implements Deque<T> {
         if(size==0){
             return null;
         }
-        T it=get(0);
+        T it=head_sentinel.next.item;
         // delete the first LinkedNode
         LinkedNode node=head_sentinel.next;
         head_sentinel.next=node.next;
@@ -91,7 +91,7 @@ public class LinkedListDeque<T> implements Deque<T> {
             return null;
         }
 
-        T it=get(size-1);
+        T it=rear_sentinel.last.item;
 
         LinkedNode node=rear_sentinel.last;
         node.last.next=rear_sentinel;
@@ -99,6 +99,7 @@ public class LinkedListDeque<T> implements Deque<T> {
         size--;
         node.last=null;
         node.next=null;
+
         return it;
     }
     // 迭代获取给定索引处的项目，0表示队首第一个元素（非sentinel）
@@ -165,11 +166,11 @@ public class LinkedListDeque<T> implements Deque<T> {
         if (o == null) {
             return false;
         }
-        if (!(o instanceof LinkedListDeque)){
+        if (!(o instanceof Deque)){
             return false;
         }
 
-        LinkedListDeque<T> others=(LinkedListDeque<T>) o;
+        Deque<T> others=(Deque<T>) o;
         if(others.size()!=size){
             return false;
         }
