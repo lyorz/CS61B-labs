@@ -34,7 +34,9 @@ public class LinkedListDeque<T> implements Deque<T> {
 
         srcFirstNode.last=node;
         head_sentinel.next=node;
+
         node.next=srcFirstNode;
+        node.last=head_sentinel;
 
         size++;
     }
@@ -44,6 +46,8 @@ public class LinkedListDeque<T> implements Deque<T> {
         LinkedNode srcLastNode=rear_sentinel.last;
 
         srcLastNode.next=node;
+        rear_sentinel.last=node;
+
         node.last=srcLastNode;
         node.next=rear_sentinel;
 
