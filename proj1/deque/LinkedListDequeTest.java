@@ -54,6 +54,9 @@ public class LinkedListDequeTest {
 		lld1.removeFirst();
 		// should be empty
 		assertTrue("lld1 should be empty after removal", lld1.isEmpty());
+
+        lld1.addLast(6);
+        assertEquals(6,(int)lld1.removeFirst());
     }
 
     @Test
@@ -143,20 +146,22 @@ public class LinkedListDequeTest {
     @Test
     public void EqualsTest(){
         LinkedListDeque<Integer> l=new LinkedListDeque<>();
-        ArrayDeque<Integer> l2=new ArrayDeque<>();
+        Deque<Integer> l2=new ArrayDeque<>();
         LinkedListDeque<Integer> l3=new LinkedListDeque<>();
 
 
         for(int i=0;i<5;++i){
             l.addLast(i);
             l3.addFirst(i);
+            l2.addFirst(i);
         }
         LinkedListDeque<Integer> l4=l;
 
-        Assert.assertEquals(l.equals(l),true);
-        Assert.assertEquals(l.equals(l3),false);
-        Assert.assertEquals(l.equals(l),true);
-        Assert.assertEquals(l.equals(l2),false);
+        Assert.assertEquals(true,l.equals(l));
+        Assert.assertEquals(false,l.equals(l3));
+        Assert.assertEquals(true,l.equals(l));
+        Assert.assertEquals(true,l3.equals(l2));
+        Assert.assertEquals(true,l.equals(l4));
     }
 
     @Test

@@ -10,7 +10,7 @@ public class RandomDequeTest {
         Deque<Integer> L = new ArrayDeque<>();
         Deque<Integer> BL=new LinkedListDeque<>();
 
-        int N = 1000;
+        int N = 5000;
         for (int i = 0; i < N; i += 1) {
             int operationNumber = StdRandom.uniform(0, 3);
             if (operationNumber == 0) {

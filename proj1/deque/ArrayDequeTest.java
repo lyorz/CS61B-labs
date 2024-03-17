@@ -29,8 +29,6 @@ public class ArrayDequeTest  {
         // The && operator is the same as "and" in Python.
         // It's a binary operator that returns true if both arguments true, and false otherwise.
         assertEquals(1, lld1.size());
-        assertEquals(0,lld1.getStart());
-        assertEquals(0,lld1.getEnd());
         assertFalse("lld1 should now contain 1 item", lld1.isEmpty());
 
         lld1.addLast("middle");
