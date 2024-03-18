@@ -22,7 +22,7 @@ public class ArrayDeque<T> implements Deque<T>,Iterable<T>{
 
         // case1: 0:null,1:null,2:start,...5:end,6:null,7:null
         if(start<=end){
-            for(int i=0;i<size-1;++i){
+            for(int i=0;i<size;++i){
                 newItems[i]=items[i+start];
             }
         }
@@ -43,16 +43,14 @@ public class ArrayDeque<T> implements Deque<T>,Iterable<T>{
     }
     // 队首添加item
     public void addFirst(T item){
-        size++;
-
         // 队列为空时直接添加
-        if(size==1){
+        if(size==0){
             items[start]=item;
+            size++;
             return;
         }
-
         // 数组已满 扩容
-        if(size>capacity){
+        if(size==capacity){
             resize(capacity*2);
         }
 
@@ -65,20 +63,21 @@ public class ArrayDeque<T> implements Deque<T>,Iterable<T>{
         else{
             start--;//0:x,1:y,2:end,....5:start,6:m,7:z
         }
+
         items[start]=item;
+        size++;
     }
     // 队尾添加item
     public void addLast(T item){
-        size++;
-
         // 队列为空时直接添加
-        if(size==1){
+        if(size==0){
             items[end]=item;
+            size++;
             return;
         }
 
         // 数组已满 扩容
-        if(size>capacity){
+        if(size==capacity){
             resize(capacity*2);
         }
 
@@ -91,8 +90,9 @@ public class ArrayDeque<T> implements Deque<T>,Iterable<T>{
         else{
             end++;
         }
-        items[end]=item;
 
+        items[end]=item;
+        size++;
     }
 
     // 返回队列元素数

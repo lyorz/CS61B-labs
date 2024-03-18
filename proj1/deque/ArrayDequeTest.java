@@ -135,12 +135,12 @@ public class ArrayDequeTest  {
     /* Check two types of get() */
     public void getTest(){
         ArrayDeque<Integer> lld1=new ArrayDeque<Integer>();
-        for(int i=0;i<5;++i){
-            lld1.addFirst(i);
+        for(int i=0;i<9;++i){
+            lld1.addLast(i);
         }
         lld1.printDeque();
-        Assert.assertEquals(0,(int)lld1.get(4));
-        Assert.assertEquals(5,5);
+        Assert.assertEquals(8,(int)lld1.get(8));
+
     }
 
     @Test
