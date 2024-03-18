@@ -1,34 +1,34 @@
-package gh2;
+package gh2; 
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Base64;
-import java.util.zip.GZIPInputStream;
+import java.io.ByteArrayInputStream; 
+import java.io.IOException; 
+import java.io.InputStream; 
+import java.util.Base64; 
+import java.util.zip.GZIPInputStream; 
 
 /**
- * This code does some stuff. Run it (with sound on!) to find out what stuff it does!
+ * This code does some stuff. Run it  ( with sound on!) to find out what stuff it does!
  * Requires completion of CS 61B Homework 1.
  *
  * @author Eli Lipsitz
  */
 public class TTFAF {
-    public static void main(String[] args) {
+    public static void main ( String[] args) {
         try {
-            InputStream source = new ByteArrayInputStream(Base64.getDecoder().decode(TTFAF));
-            source = new GZIPInputStream(source);
-            GuitarPlayer player = new GuitarPlayer(source);
-            player.play();
-        } catch (IOException e) {
-            e.printStackTrace();
+            InputStream source  =  new ByteArrayInputStream ( Base64.getDecoder ( ).decode ( TTFAF)); 
+            source  =  new GZIPInputStream ( source); 
+            GuitarPlayer player  =  new GuitarPlayer ( source); 
+            player.play ( ); 
+        } catch  ( IOException e) {
+            e.printStackTrace ( ); 
         }
 
         // You can also do this:
-        // GuitarPlayer player = new GuitarPlayer(new java.io.File("path/to/music.mid"));
-        // player.play();
+        // GuitarPlayer player  =  new GuitarPlayer ( new java.io.File ( "path/to/music.mid")); 
+        // player.play ( ); 
     }
 
-    private static final String TTFAF =
+    private static final String TTFAF  = 
         "H4sICO8zfloCA1RURkFGaW1wcm92ZWQyLm1pZAC1fe1uI0mSWNze2mf4CQwMGhIamu7WSqfRtEYi"
         + "WSyyqljFYpGlUlFsbmsGjb27BXbhPdz5Dljbv7ebvcbtD8Mg7BfZR/Cj7IsY48qMiMyM+hLV3fOP"
         + "lREZmRkZERkZkZkstr/7DQD8e/gr+NlfQbH9/T9VXz78eP/XP/8/f4Eff/jZ/wP48a+Ptr/7/b/+"
@@ -183,5 +183,5 @@ public class TTFAF {
         + "g96sQ75u3LONyQzWMzhawtkSD6ngsUV6zEu91HMHZ3doPxBEb1sXIzi6h7N7NEsIsm+yMMGcQfR4"
         + "YmW9jm7h7LZBcAqVUWwnOIK8aquEs7JOUD/zY0ArBk31oy1YvqODmDv95xTT7/6IMd58BSczuKTD"
         + "8wUeQqcz27kPJxu43Hxw06TZAE7u4PLOParlZEg8gv6CqnAAZQmXyw9nVEgRopMcLnNTqKj9wwb0"
-        + "6zR/5Bb/AT7+4c9/APjxG/j/XQ2yXpqSAA==";
+        + "6zR/5Bb/AT7+4c9/APjxG/j/XQ2yXpqSAA =  = "; 
 }
