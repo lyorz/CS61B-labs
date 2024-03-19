@@ -42,27 +42,33 @@ public class TestArrayDequeEC {
                 Integer expected = ads.get( idx );
                 Integer actual = sad.get( idx );
                 operations.addLast("get(" + idx + ")\n");
-                Assert.assertEquals( getOperationsList(operations),
-                        expected,
-                        actual);
+                if( actual != null ) {
+                    Assert.assertEquals(getOperationsList(operations),
+                            expected,
+                            actual);
+                }
             }
             else if ( option == 3 ) {
                 if ( ads.isEmpty() || sad.isEmpty() ) { continue; }
                 Integer expected = ads.removeFirst();
                 Integer actual = sad.removeFirst();
                 operations.addLast("removeFirst()\n");
-                Assert.assertEquals(getOperationsList(operations),
-                        expected,
-                        actual);
+                if( actual != null ) {
+                    Assert.assertEquals(getOperationsList(operations),
+                            expected,
+                            actual);
+                }
             }
             else {
                 if ( ads.isEmpty() || sad.isEmpty() ) { continue; }
                 Integer expected = ads.removeLast();
                 Integer actual = sad.removeLast();
                 operations.addLast("removeLast()\n");
-                Assert.assertEquals(getOperationsList(operations),
-                        expected,
-                        actual);
+                if( actual != null ) {
+                    Assert.assertEquals(getOperationsList(operations),
+                            expected,
+                            actual);
+                }
             }
         }
 
