@@ -21,7 +21,7 @@ public class TestArrayDequeEC {
 
         Assert.assertTrue( sad.isEmpty() );
 
-        int N=1000;
+        int N=5000;
 
         for(int i = 0; i<N; ++i){
             int option = StdRandom.uniform(0,5);
@@ -41,8 +41,8 @@ public class TestArrayDequeEC {
                 int idx = StdRandom.uniform(0, sad.size() );
                 Integer expected = ads.get( idx );
                 Integer actual = sad.get( idx );
-                operations.addLast("get(" + idx + ")\n");
-                if( actual != null ) {
+                if( actual != null && expected !=null ) {
+                    operations.addLast("get(" + idx + ")\n");
                     Assert.assertEquals(getOperationsList(operations),
                             expected,
                             actual);
@@ -52,8 +52,9 @@ public class TestArrayDequeEC {
                 if ( ads.isEmpty() || sad.isEmpty() ) { continue; }
                 Integer expected = ads.removeFirst();
                 Integer actual = sad.removeFirst();
-                operations.addLast("removeFirst()\n");
+
                 if( actual != null ) {
+                    operations.addLast("removeFirst()\n");
                     Assert.assertEquals(getOperationsList(operations),
                             expected,
                             actual);
@@ -63,8 +64,9 @@ public class TestArrayDequeEC {
                 if ( ads.isEmpty() || sad.isEmpty() ) { continue; }
                 Integer expected = ads.removeLast();
                 Integer actual = sad.removeLast();
-                operations.addLast("removeLast()\n");
+
                 if( actual != null ) {
+                    operations.addLast("removeLast()\n");
                     Assert.assertEquals(getOperationsList(operations),
                             expected,
                             actual);
