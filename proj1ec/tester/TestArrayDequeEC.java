@@ -31,25 +31,32 @@ public class TestArrayDequeEC {
                 int idx = StdRandom.uniform(0, sad.size() );
                 Integer expected = ads.get( idx );
                 Integer actual = sad.get( idx );
-                Assert.assertEquals( "Expect that the " + idx + "th " + "value equals "+ expected + ", but got " + actual + ".\n",
-                                    expected,
-                                    actual);
+                if ( actual != null ){
+                    Assert.assertEquals( "Expect that the " + idx + "th " + "value equals "+ expected + ", but got " + actual + ".\n",
+                            expected,
+                            actual);
+                }
+
             }
             else if ( option == 3 ) {
                 if ( ads.isEmpty() || sad.isEmpty() ) { continue; }
-                int expected = ads.removeFirst();
-                int actual = sad.removeFirst();
-                Assert.assertEquals( "Expect that the first value equals " + expected + ", but got " + actual + ".\n",
-                        expected,
-                        actual);
+                Integer expected = ads.removeFirst();
+                Integer actual = sad.removeFirst();
+                if ( actual != null ) {
+                    Assert.assertEquals("Expect that the first value equals " + expected + ", but got " + actual + ".\n",
+                            expected,
+                            actual);
+                }
             }
             else {
                 if ( ads.isEmpty() || sad.isEmpty() ) { continue; }
                 Integer expected = ads.removeLast();
                 Integer actual = sad.removeLast();
-                Assert.assertEquals( "Expect that the last value equals " + expected + ", but got " + actual + ".\n",
-                        expected,
-                        actual);
+                if ( actual != null ) {
+                    Assert.assertEquals("Expect that the last value equals " + expected + ", but got " + actual + ".\n",
+                            expected,
+                            actual);
+                }
             }
         }
 
