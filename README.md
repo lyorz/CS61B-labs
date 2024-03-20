@@ -53,4 +53,29 @@ ArrayDeque真的难。
 > 2024/03/19
 
 始终过不了ag，遂弃。
+## Lab4: Git
+> 2024/03/20
 
+由于课程已经完结了，所有项目文件都是直接clone下来的，助教当时设置的合并冲突不能通过pull出现了，只能想办法回溯到过去的状态。
+
+所以新建一个分支回到pull lab4之前的状态：
+```
+git checkout dd477f37b7c97f22868aa7482e2391fbced60bf6
+git branch onlyforlab4
+git checkout onlyforlab4
+```
+注意我们此时的lab1是没有做过的状态，所以需要在新的onlyforlab4分支上重新写一遍lab1/Collatz.java并提交。
+
+现在我们可以通过`git pull skeleton master`并出现合并冲突了，修正合并冲突后add并commit，并将我们新创建的分支推送到github：
+
+```
+git push --set-upstream origin onlyforlab4
+```
+
+之后就可以在lab4A的自动评分器提交我们的onlyforlab4分支了。
+
+lab4b比较简单，直接git log查看正确提交lab1/Collatz.java的哈希值，并将lab1/Collatz.java回溯到正确的状态：
+```
+git checkout 5a9c9d1893d8e9d3973aaf0cdf141964f1c71e71 -- lab1/Collatz.java
+```
+然后正常add、commit、push即可提交到autograder，注意此时我们需要push到新建的分支`git push origin onlyforlab4`
