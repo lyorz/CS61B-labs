@@ -78,4 +78,12 @@ lab4b比较简单，直接git log查看正确提交lab1/Collatz.java的哈希值
 ```
 git checkout 5a9c9d1893d8e9d3973aaf0cdf141964f1c71e71 -- lab1/Collatz.java
 ```
-然后正常add、commit、push即可提交到autograder，注意此时我们需要push到新建的分支`git push origin onlyforlab4`
+然后正常add、commit、push即可提交到Lab4B的autograder，注意此时我们需要push到新建的分支`git push origin onlyforlab4`
+
+
+
+做Lab4调试作业的时候发现一个之前没太注意的问题，在Java中，当我们对Integer对象使用==运算符时将比较两个对象的引用是否相同而不是比较它们的值是否相等。
+**但为什么从0开始遍历，只在128中出现了错误呢？**
+**答案是**：在Java中，Integer 类中的静态方法 valueOf 会返回一个缓存中的对象，如果数值在 -128 到 127 之间，则会返回缓存中的对象，否则会创建一个新的对象。因此，当你使用 == 运算符比较两个数值在范围内的 Integer 对象时，它们可能会返回 true，但当比较超出范围的整数时，它们会返回 false。
+所以最后我们使用equals方法来比较两个Integer对象的值是否相等。
+
