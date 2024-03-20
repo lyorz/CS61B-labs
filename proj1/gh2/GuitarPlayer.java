@@ -53,7 +53,7 @@ public class GuitarPlayer {
     private double sample ( ) {
         double sum  =  0.0f; 
         for  ( int i  =  0;  i < strings.length;  i++) {
-            sum + =  vol[i] * strings[i].sample ( ); 
+            sum +=  vol[i] * strings[i].sample ( );
         }
         return sum; 
     }

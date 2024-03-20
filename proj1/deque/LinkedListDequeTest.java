@@ -175,7 +175,7 @@ public class LinkedListDequeTest {
         Iterator<Integer> it = ad.iterator ( ); 
         while ( it.hasNext ( )){
             Assert.assertEquals ( ad.get ( index),it.next ( )); 
-            index+ = 1; 
+            index+= 1;
         }
 
     }
