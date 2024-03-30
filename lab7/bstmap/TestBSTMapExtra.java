@@ -3,6 +3,9 @@ package bstmap;
 import java.util.Set;
 import java.util.HashSet;
 import static org.junit.Assert.*;
+
+import edu.princeton.cs.algs4.BST;
+import org.junit.Assert;
 import org.junit.Test;
 
 /** Tests of optional parts of lab 7. */
@@ -20,6 +23,7 @@ public class TestBSTMapExtra {
             values.add("hi" + i);
         }
         assertEquals(455, b.size()); //keys are there
+        b.printInOrder();
         Set<String> keySet = b.keySet();
         assertTrue(values.containsAll(keySet));
         assertTrue(keySet.containsAll(values));
@@ -40,6 +44,8 @@ public class TestBSTMapExtra {
     @Test
     public void testRemoveRoot() {
         BSTMap<String,String> q = new BSTMap<String,String>();
+        q.put("c","a");
+        assertTrue("a" == q.remove("c"));
         q.put("c","a");
         q.put("b","a");
         q.put("a","a");
@@ -113,4 +119,14 @@ public class TestBSTMapExtra {
         assertEquals(null, noChild.get('Z'));
     }
 
+    @Test
+    public void TestRemoveSpecialNode() {
+        BSTMap<String,Integer> b = new BSTMap<>();
+        b.put("c",3);
+        b.put("c",1);
+        b.put("c",2);
+        b.put("c",4);
+        b.put("c",5);
+        assertTrue(3==b.remove("c",3));
+    }
 }
