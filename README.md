@@ -95,9 +95,18 @@ git checkout 5a9c9d1893d8e9d3973aaf0cdf141964f1c71e71 -- lab1/Collatz.java
 
 **答案是**：在Java中，Integer 类中的静态方法 valueOf 会返回一个缓存中的对象，如果数值在 -128 到 127 之间，则会返回缓存中的对象，否则会创建一个新的对象。因此，当你使用 == 运算符比较两个数值在范围内的 Integer 对象时，它们可能会返回 true，但当比较超出范围的整数时，它们会返回 false。所以最后我们使用equals方法来比较两个Integer对象的值是否相等。
 
-
 # Lab6: Getting Started on Project 2
 >2024/03/24
 
 Lab5是Peer Code Reviewer没法做。Lab6比较简单，但是对认识git的存储原理有很大帮助。
 
+
+# Lab7: BSTMap
+> 2024/03/30
+
+扣了12.8分，因为感觉完成remove(K key, V value)需要对V类型数据进行比较，那么就要使用compareTo，所以对V类型也进行了扩展，但这样造成接口错误（
+
+>Testing bstmap.BSTMap.java
+>Wrong type paramters: 
+>  *  Expected: <K extends Comparable<K>,V>
+>  *  Received: <K extends Comparable<K>,V extends Comparable<V>>
