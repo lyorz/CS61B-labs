@@ -110,3 +110,12 @@ Lab5是Peer Code Reviewer没法做。Lab6比较简单，但是对认识git的存
 >Wrong type paramters: 
 >  *  Expected: <K extends Comparable<K>,V>
 >  *  Received: <K extends Comparable<K>,V extends Comparable<V>>
+
+
+# Lab8: HashMap
+> 2024/04/04
+
+64.0/64.0
+
+虽然拿满了分数但没有通过碰撞检测（collisionTest(), collisionUpdateValueTest()），不过这个我确实没考虑因为感觉实验要求里关于这个没有写的很清楚，不打算写了（
+
