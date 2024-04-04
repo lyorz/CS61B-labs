@@ -2,6 +2,7 @@ package hashmap;
 
 import org.w3c.dom.Node;
 
+import java.security.Key;
 import java.util.*;
 
 /**
@@ -211,16 +212,54 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
      */
     @Override
     public V remove(K key) {
-        throw new UnsupportedOperationException();
+        for (Collection<Node> bucket : buckets) {
+            Iterator<Node> it = bucket.iterator();
+            if (it.hasNext()) {
+                Node n = it.next();
+                if (key.equals(n.key)) {
+                    bucket.remove(n);
+                    size--;
+                    return n.value;
+                }
+            }
+        }
+        return null;
     }
 
     @Override
     public V remove(K key, V value) {
-        throw new UnsupportedOperationException();
+        for (Collection<Node> bucket : buckets) {
+            Iterator<Node> it = bucket.iterator();
+            if (it.hasNext()) {
+                Node n = it.next();
+                if (key.equals(n.key) && value.equals(n.value)) {
+                    bucket.remove(n);
+                    size--;
+                    return n.value;
+                }
+            }
+        }
+        return null;
     }
-
+    private class MyHashMapIterator implements Iterator {
+        int wizPos = 0;
+        Set<K> s = keySet();
+        public boolean hasNext() {
+            return wizPos < s.size();
+        }
+        public K next() {
+            int i = 0;
+            for (K k : s) {
+                if (i == wizPos) {
+                    return k;
+                }
+                i++;
+            }
+            return null;
+        }
+    }
     @Override
     public Iterator<K> iterator() {
-        throw new UnsupportedOperationException();
+        return new MyHashMapIterator();
     }
 }
