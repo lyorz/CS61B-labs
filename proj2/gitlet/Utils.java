@@ -14,10 +14,12 @@ import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Formatter;
-import java.util.List;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
+import java.util.Locale;
+import java.util.TimeZone;
+import java.text.SimpleDateFormat;
 
 /** Assorted utilities.
  *
@@ -188,6 +190,15 @@ class Utils {
         return plainFilenamesIn(new File(dir));
     }
 
+    /** 读取给定文件夹下所有目录。
+     *  将所有目录名写入List中并返回，当前文件夹下不存在目录返回null
+     *
+     */
+    static String[] DirnamesIn(File dir) {
+        String[] files = dir.list();
+        return files;
+    }
+
     /* OTHER FILE UTILITIES */
 
     /** Return the concatentation of FIRST and OTHERS into a File designator,
@@ -235,5 +246,26 @@ class Utils {
     static void message(String msg, Object... args) {
         System.out.printf(msg, args);
         System.out.println();
+    }
+
+    public static void exitWithError(String message) {
+        if (message != null && !message.equals("")) {
+            System.out.println(message);
+        }
+        System.exit(-1);
+    }
+
+    /** 给定timestamp(ms)，输出格式为“”的格式化时间字符串 */
+    public static String getTimeString(long timestamp) {
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss 'UTC,' EEEE, d MMMM yyyy", Locale.ENGLISH);
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+        // 创建 Date 对象
+        Date date = new Date(timestamp);
+
+        // 格式化时间为字符串
+        String formattedDate = sdf.format(date);
+
+        return formattedDate;
     }
 }

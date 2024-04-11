@@ -9,7 +9,9 @@ import static gitlet.Utils.*;
  *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
- *  @author TODO
+ *  文件目录结构：
+ *  .gitlet/ -- top level folder
+ *  @author lyorz
  */
 public class Repository {
     /**
@@ -24,6 +26,20 @@ public class Repository {
     public static final File CWD = new File(System.getProperty("user.dir"));
     /** The .gitlet directory. */
     public static final File GITLET_DIR = join(CWD, ".gitlet");
-
-    /* TODO: fill in the rest of this class. */
+    /** The .gitlet/objects directory. */
+    public static final File OBJECTS_DIR = join(GITLET_DIR, "objects");
+    /** The .gitlet/refs directory. */
+    public static final File REFS_DIR = join(GITLET_DIR, "refs");
+    /** The .gitlet/refs/heads directory. */
+    public static final File HEADS_DIR = join(REFS_DIR, "heads");
+    public static boolean setupPersistence() {
+        if (!GITLET_DIR.exists()) {
+            GITLET_DIR.mkdir();
+            OBJECTS_DIR.mkdir();
+            REFS_DIR.mkdir();
+            HEADS_DIR.mkdir();
+            return true;
+        }
+        return false;
+    }
 }
