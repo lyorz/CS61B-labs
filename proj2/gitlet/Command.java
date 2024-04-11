@@ -103,7 +103,7 @@ public class Command {
             commit = parent;
             parent = commit.getParent();
         }
-        System.out.println(commit.getLog());
+        System.out.print(commit.getLog());
     }
 
     /** DESCRIPTION -- rm
@@ -215,7 +215,6 @@ public class Command {
         // 读取文件内容
         File filecontent = Utils.join(OBJECTS_DIR, fileID.substring(0, 2), fileID.substring(2));
         String strcontent = Utils.readContentsAsString(filecontent);
-        System.out.println(strcontent);
         // 如果文件存在于当前目录，覆盖
         File f = new File(filename);
         if (f.exists()) {

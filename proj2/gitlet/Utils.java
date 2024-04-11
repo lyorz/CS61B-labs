@@ -257,7 +257,7 @@ class Utils {
 
     /** 给定timestamp(ms)，输出格式为“”的格式化时间字符串 */
     public static String getTimeString(long timestamp) {
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss 'UTC,' EEEE, d MMMM yyyy", Locale.ENGLISH);
+        SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss yyyy Z", Locale.ENGLISH);
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 
         // 创建 Date 对象
