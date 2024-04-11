@@ -24,7 +24,7 @@ public class Command {
         // 初始化.gitlet/
         if (Repository.setupPersistence()) {
             // 创建初始提交
-            Commit c = new Commit("Init commit.");
+            Commit c = new Commit("initial commit");
             // 记录当前commit
             c.saveCommit();
             return;

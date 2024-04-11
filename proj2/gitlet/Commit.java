@@ -44,7 +44,7 @@ public class Commit implements Serializable {
     public Commit(String message) {
         this.message = message;
         // 初始提交
-        if (message.equals("Init commit.")) {
+        if (message.equals("initial commit")) {
             this.timestamp = Utils.getTimeString(0);
             this.parent = "";
             this.tree =  "";
