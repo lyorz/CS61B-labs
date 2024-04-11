@@ -119,3 +119,12 @@ Lab5是Peer Code Reviewer没法做。Lab6比较简单，但是对认识git的存
 
 虽然拿满了分数但没有通过碰撞检测（collisionTest(), collisionUpdateValueTest()），不过这个我确实没考虑因为感觉实验要求里关于这个没有写的很清楚，不打算写了（
 
+
+
+# Porj2: Gitlet(Checkpoint)
+> 2024/04/11
+
+16.0/16.0
+
+
+到今天完成了init, add, commit, log, global-log, rm还有两个基本的checkout。
