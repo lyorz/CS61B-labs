@@ -103,7 +103,7 @@ public class Command {
             commit = parent;
             parent = commit.getParent();
         }
-        System.out.print(commit.getLog());
+        System.out.println(commit.getLog());
     }
 
     /** DESCRIPTION -- rm
