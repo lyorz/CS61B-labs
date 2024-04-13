@@ -1,6 +1,7 @@
 package gitlet;
 
 import java.io.*;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -197,5 +198,31 @@ public class Blobs implements Serializable{
             returnItem = returnItem + addblob.getKey() + addblob.getValue();
         }
         return returnItem;
+    }
+    /** 比较暂存区和Blob对象是否存在相同条目（用于检测checkout是否合法） */
+    public boolean haveSameFile(Blobs TrackingTree) {
+        for (Map.Entry<String, String> rmblob : this.rmStagingArea.entrySet()) {
+            String[] findRes = TrackingTree.find(rmblob.getKey());
+            if (findRes[0] != null) {
+                return true;
+            }
+        }
+        for (Map.Entry<String, String> addblob : this.addStagingArea.entrySet()) {
+            String[] findRes = TrackingTree.find(addblob.getKey());
+            if (findRes[1] != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 获取add暂存区文件列表（对于追踪树来说意味着追踪文件列表） */
+    public TreeMap<String, String> getAddedFiles() {
+        return addStagingArea;
+    }
+
+    /** 获取rm暂存区文件列表*/
+    public TreeMap<String, String> getRemovedFiles() {
+        return rmStagingArea;
     }
 }

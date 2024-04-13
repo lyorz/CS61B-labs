@@ -24,14 +24,22 @@ public class Commit implements Serializable {
     static final File OBJECTS_DIR = Utils.join(".gitlet", "objects");
     static final File HEAD = Utils.join(".gitlet", "HEAD");
     private static final File INDEX = Utils.join(".gitlet", "index");
+
+    private static final File HEADS_DIR = Utils.join(".gitlet", "refs", "heads");
     /** The message of this Commit. */
     private String message;
+
+    /** commit所处分支 */
+    private String branch;
 
     /** commit创建时的时间戳：从1970-01-01 00:00:00 至当前时间的毫秒数*/
     private String timestamp;
 
     /** 当前commit的父节点sha-1哈希值 */
     private String parent;
+
+    /** 当前Commit的父节点sha-1哈希值（专用于merge提交） */
+    private String sencondParent;
 
     /** 当前Commit对象的sha-1哈希值 */
     private String ID;
@@ -43,16 +51,19 @@ public class Commit implements Serializable {
      */
     public Commit(String message) {
         this.message = message;
+        File commitfile = new File(HEADS_DIR, "master");
         // 初始提交
         if (message.equals("initial commit")) {
             this.timestamp = Utils.getTimeString(0);
             this.parent = "";
             this.tree =  "";
+            this.branch = "master";
         }
         // 非初始提交
         else {
             // 读取父提交
-            String parentCommitID = Utils.readContentsAsString(HEAD);
+            commitfile = Utils.readObject(HEAD, File.class);
+            String parentCommitID = Utils.readContentsAsString(commitfile);
             Commit parentCommit = Commit.fromfile(Utils.join(OBJECTS_DIR, parentCommitID.substring(0,2), parentCommitID.substring(2)));
             Blobs newTree = parentCommit.getBlobsofTree();
 
@@ -60,12 +71,36 @@ public class Commit implements Serializable {
             this.timestamp = Utils.getTimeString(System.currentTimeMillis());
             this.parent = parentCommitID;
             this.tree = Utils.sha1(newTree.toString());
+            this.branch = Utils.readObject(HEAD, File.class).getName();
 
             saveTree(newTree);
         }
         this.ID = Utils.sha1(this.message, this.timestamp, this.parent, this.tree);
         // 改写HEAD
-        Utils.writeContents(HEAD, this.ID);
+        Utils.writeObject(HEAD, commitfile);
+        Utils.writeContents(commitfile, this.ID);
+    }
+
+    public Commit(Commit currHead, Commit givenHead) {
+        File commitfile = Utils.readObject(HEAD, File.class);
+        Blobs newTree = currHead.getBlobsofTree();
+        saveTree(newTree);
+
+        this.parent = currHead.parent;
+        this.sencondParent = givenHead.parent;
+        this.message = "Merged " + givenHead.branch + " into " + currHead.branch +".";
+        this.timestamp = Utils.getTimeString(System.currentTimeMillis());
+        this.tree = Utils.sha1(newTree.toString());
+        this.branch = currHead.branch;
+        this.ID = Utils.sha1(this.message, this.timestamp, this.parent, this.sencondParent, this.tree);
+
+        Utils.writeObject(HEAD, commitfile);
+        Utils.writeContents(commitfile, this.ID);
+    }
+
+    /** 获取当前commit所处分支 */
+    public String getBranch() {
+        return this.branch;
     }
 
     /** 从输入文件f中读取Commit对象 */

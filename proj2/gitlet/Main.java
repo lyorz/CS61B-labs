@@ -46,10 +46,27 @@ public class Main {
                 if (args.length == 3) {
                     Command.checkoutResetfile(args[2]);
                 }
-                if (args.length == 4) {
+                else if (args.length == 4) {
                     Command.checkoutLastfile(args[1], args[3]);
                 }
-                //else {}
+                else {
+                    Command.checkout(args[1]);
+                }
+                break;
+            case "branch":
+                Command.branch(args[1]);
+                break;
+            case "status":
+                Command.status();
+                break;
+            case "rm-branch":
+                Command.rmBranch(args[1]);
+                break;
+            case "reset":
+                Command.reset(args[1]);
+                break;
+            case "merge":
+                Command.merge(args[1]);
                 break;
             // TODO: FILL THE REST IN
             default:

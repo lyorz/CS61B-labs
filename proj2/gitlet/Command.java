@@ -1,14 +1,58 @@
 package gitlet;
 
 import java.io.*;
-import java.sql.Blob;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class Command {
     private static final File INDEX = Utils.join(".gitlet", "index");
     static final File HEAD = Utils.join(".gitlet", "HEAD");
     static final File OBJECTS_DIR = Utils.join(".gitlet", "objects");
+    static final File HEADS_DIR = Utils.join(".gitlet", "refs", "heads");
 
+    /** 辅助函数：读取头提交
+     * @return c
+     */
+    private static Commit readHeadCommit() {
+        File headCommitFile = Utils.readObject(HEAD, File.class);
+        String headCommitID = Utils.readContentsAsString(headCommitFile);
+        Commit c = Commit.fromfile(Utils.join(OBJECTS_DIR, headCommitID.substring(0,2), headCommitID.substring(2)));
+        return c;
+    }
+
+
+    /** 辅助函数：根据输入读取对应ID的Commit对象
+     * @param commitID
+     * @return c
+     */
+    private static Commit readCommitWithID(String commitID) {
+        File commitFile = Utils.join(OBJECTS_DIR, commitID.substring(0,2), commitID.substring(2));
+        // 如果存在这样的提交
+        if (commitFile.exists()) {
+            Commit c = Commit.fromfile(commitFile);
+            return c;
+        }
+        return null;
+    }
+
+    /** 辅助函数：查找给定名称的分支是否存在
+     * @param branchName
+     * @return
+     */
+    private static boolean branchExists(String branchName) {
+        // 读取所有branch
+        List<String> branchNameList = Utils.plainFilenamesIn(HEADS_DIR);
+
+        for (String b : branchNameList) {
+            if (b.equals(branchName)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
     /**DESCRIPTION -- init
      * Creates a new Gitlet version-control system in the current directory.
      * This system will automatically start with one commit:
@@ -52,6 +96,21 @@ public class Command {
         b.saveBlobs(INDEX);
     }
 
+    /** 辅助函数：清空暂存区
+     *
+     */
+    private static void clearStagingArea() {
+        // 清空暂存区
+        try{
+            FileWriter writer = new FileWriter(INDEX);
+            writer.write("");
+            writer.flush();
+            writer.close();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     /**DESCRIPTION -- commit
      * Saves a snapshot of tracked files in the current commit and staging area so they can be restored at a later time, creating a new commit.
      * The commit is said to be tracking the saved files.
@@ -71,16 +130,7 @@ public class Command {
         // 读取头提交
         Commit c = new Commit(message);
         c.saveCommit();
-        // 清空暂存区
-        try{
-            FileWriter writer = new FileWriter(INDEX);
-            writer.write("");
-            writer.flush();
-            writer.close();
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
+        clearStagingArea();
     }
     /** DESCRIPTION -- log
      * Starting at the current head commit, display information about each commit backwards along the commit tree until the initial commit,
@@ -93,8 +143,7 @@ public class Command {
         // 尚未解决：合并提交？
 
         // 读取当前提交和父提交
-        String commitID = Utils.readContentsAsString(HEAD);
-        Commit commit = Commit.fromfile(Utils.join(OBJECTS_DIR, commitID.substring(0,2), commitID.substring(2)));
+        Commit commit = readHeadCommit();
         Commit parent = commit.getParent();
 
         // 输出log信息
@@ -238,11 +287,8 @@ public class Command {
      * The new version of the file is not staged.
      * */
     public static void checkoutResetfile(String filename) {
-        // 获取头提交ID
-        String ID = Utils.readContentsAsString(HEAD);
-        // 读取头提交的Commit对象
-        File commitfile = Utils.join(OBJECTS_DIR, ID.substring(0,2), ID.substring(2));
-        Commit head = Commit.fromfile(commitfile);
+        // 获取头提交
+        Commit head = readHeadCommit();
         // 获取头提交追踪的Blobs对象
         Blobs b = head.getTrackingTree();
         String fileID = b.find(filename)[0];
@@ -263,32 +309,533 @@ public class Command {
      *  The new version of the file is not staged.
      */
     public static void checkoutLastfile(String ID, String filename) {
-        // 获取头提交ID
-        String headID = Utils.readContentsAsString(HEAD);
-        // 读取头提交的Commit对象
-        File commitfile = Utils.join(OBJECTS_DIR, headID.substring(0,2), headID.substring(2));
-        Commit c= Commit.fromfile(commitfile);
+        // 获取对应ID的提交
+        Commit c = readCommitWithID(ID);
 
-        while (!c.isSameID(ID) && (c.getParent() != null)) {
+        // 如果不存在这样的提交，抛出异常并退出
+        if (c == null) {
+            Utils.exitWithError("No commit with that id exists.");
+        }
+
+        // 获取提交追踪文件树
+        Blobs b = c.getTrackingTree();
+        // 查找给定提交中追踪的文件
+        String fileID = b.find(filename)[0];
+        //
+        if (fileID == null) {
+            Utils.exitWithError("File does not exist in that commit.");
+        }
+        overrideFile(fileID, filename);
+    }
+
+    private static void resetCWDfiles (TreeMap<String, String> currTrackingTree, TreeMap<String, String> dstTrackingTree) {
+        List<String> cwdfiles = Utils.plainFilenamesIn(Repository.CWD);
+        for (String filename : cwdfiles) {
+            String sha1InCurrCommit = currTrackingTree.get(filename);
+            String sha1InCurrCWD = Utils.sha1(Utils.readContentsAsString(new File(filename)));
+
+            // 如果工作目录中存在未被当前提交所跟踪的文件，退出
+            if (sha1InCurrCommit == null || (sha1InCurrCommit != null && !sha1InCurrCWD.equals(sha1InCurrCommit))) {
+                Utils.exitWithError("There is an untracked file in the way; delete it, or add and commit it first.");
+            }
+        }
+        // 删除所有追踪文件
+        for (String filename : cwdfiles) {
+            Utils.restrictedDelete(filename);
+        }
+
+        // 重写签出所跟踪的所有文件
+        for (Map.Entry<String, String> entry : dstTrackingTree.entrySet()) {
+            overrideFile(entry.getValue(), entry.getKey());
+        }
+        // 清空暂存区
+        clearStagingArea();
+    }
+
+    /**
+     * Takes all files in the commit at the head of the given branch,
+     * and puts them in the working directory,
+     * overwriting the versions of the files that are already there if they exist.
+     * Also, at the end of this command, the given branch will now be considered the current branch
+     * (HEAD).
+     * Any files that are tracked in the current branch but are not present in the checked-out
+     * branch are deleted. The staging area is cleared,
+     * unless the checked-out branch is the current branch
+     * @param branchName
+     */
+    public static void checkout(String branchName) {
+        // 读取头提交
+        Commit currHead = readHeadCommit();
+
+        // 要切换的分支不存在，退出
+        if (!branchExists(branchName)) {
+            Utils.exitWithError("No such branch exists.");
+        }
+        // 如果头提交位于branchName分支，无需切换，退出
+        if (branchName.equals(currHead.getBranch())) {
+            Utils.exitWithError("No need to checkout the current branch.");
+        }
+
+        // 读取branchName对应的头提交
+        File branchheadfile = Utils.join(HEADS_DIR, branchName);
+        String CommitID = Utils.readContentsAsString(branchheadfile);
+        Commit branchHead = readCommitWithID(CommitID);
+        // 读取切换的branch头提交对应追踪文件
+        TreeMap<String, String> branchTrackingTree = branchHead.getTrackingTree().getAddedFiles();
+        // 读取当前头提交追踪文件
+        TreeMap<String, String> currBranchTrackingTree = currHead.getTrackingTree().getAddedFiles();
+
+        // 重置工作目录文件到给定branch的状态
+        resetCWDfiles(currBranchTrackingTree, branchTrackingTree);
+        // 改写HEAD指向
+        Utils.writeObject(HEAD, Utils.join(HEADS_DIR, branchName));
+    }
+
+    /** DESCRIPTION -- branch
+     * Creates a new branch with the given name, and points it at the current head commit.
+     * A branch is nothing more than a name for a reference (a SHA-1 identifier) to a commit node.
+     * This command does NOT immediately switch to the newly created branch (just as in real Git).
+     * Before you ever call branch, your code should be running with a default branch called “master”.
+     * @param branchName
+     */
+    public static void branch(String branchName) {
+        // 如果分支已存在，抛出异常并退出
+        if (branchExists(branchName)) {
+            Utils.exitWithError("A branch with that name already exists.");
+        }
+
+        // 读取当前头提交ID
+        File currHeadfile = Utils.readObject(HEAD, File.class);
+        String currHeadID = Utils.readContentsAsString(currHeadfile);
+        // 新建提交文件
+        File newBranchFile = Utils.join(HEADS_DIR, branchName);
+        // 将当前头提交ID写入新建提交 --> 即将新建提交指向当前节点
+        Utils.writeContents(newBranchFile, currHeadID);
+    }
+
+    private static void printStatus(String title, ArrayList<String> objects) {
+        System.out.println(title);
+        for (String object : objects) {
+            System.out.println(object);
+        }
+        System.out.println();
+    }
+
+    private static void branchStatus(File currheadfile) {
+        // 读取所有分支文件
+        List<String> branchfilenames = Utils.plainFilenamesIn(HEADS_DIR);
+        // 获取当前所处分支
+        String currheadname = currheadfile.getName();
+        System.out.println("=== Branches ===\n*"+currheadname);
+        for (String branchfilename : branchfilenames) {
+            if (branchfilename.equals(currheadname)) {
+                continue;
+            }
+            System.out.println(branchfilename);
+        }
+        System.out.println();
+    }
+
+    private static void addStageStatus(Blobs StagingArea) {
+        // 读取添加暂存区文件
+        TreeMap<String, String> addStagingArea = StagingArea.getAddedFiles();
+        ArrayList<String> addfilenames = new ArrayList<>();
+        for (Map.Entry<String, String> entry : addStagingArea.entrySet()) {
+            addfilenames.add(entry.getKey());
+        }
+        printStatus("=== Staged Files ===", addfilenames);
+    }
+
+    private static void rmStageStatus(Blobs StagingArea) {
+        // 读取删除暂存区文件
+        TreeMap<String, String> rmStagingArea = StagingArea.getRemovedFiles();
+        ArrayList<String> rmfilenames = new ArrayList<>();
+        for (Map.Entry<String, String> entry : rmStagingArea.entrySet()) {
+            rmfilenames.add(entry.getKey());
+        }
+        printStatus("=== Removed Files ===", rmfilenames);
+    }
+
+    private static void unstagedStatus(Blobs StagingArea, TreeMap<String, String> trackingFiles, List<String> cwdFiles) {
+        // 记录文件状态：修改/删除未暂存
+        ArrayList<String> unstaged = new ArrayList<>();
+
+        // 遍历头提交文件
+        for (Map.Entry<String, String> entry : trackingFiles.entrySet()) {
+            // 如果文件存在于暂存区，跳过
+            String[] findRes = StagingArea.find(entry.getKey());
+            if (findRes[0] != null || findRes[1] != null) {
+                continue;
+            }
+            String curr_filename = entry.getKey();
+            // 如果文件存在于工作目录
+            if (cwdFiles.contains(entry.getKey())) {
+                // 计算工作目录下文件的sha-1哈希值
+                File f = new File(curr_filename);
+                String curr_file_sha1 = Utils.sha1(Utils.readContentsAsString(f));
+                // 如果结果和追踪树中记录的不等，则存在未暂存的修改
+                if (!curr_file_sha1.equals(entry.getValue())) {
+                    unstaged.add(curr_filename + " (modified)");
+                }
+            }
+            // 如果文件不存在
+            else {
+                // 则文件被删除且未加入暂存区
+                unstaged.add(curr_filename + " (deleted)");
+            }
+        }
+
+        printStatus("=== Modifications Not Staged For Commit ===", unstaged);
+
+    }
+
+    private static ArrayList<String> untrackedStatus(TreeMap<String, String> trackingFiles, List<String> cwdFiles) {
+        // 存在于工作目录且不存在于追踪树的文件
+        ArrayList<String> untracked = new ArrayList<>();
+        for (String curr_filename : cwdFiles) {
+            if (trackingFiles.get(curr_filename) == null) {
+                untracked.add(curr_filename);
+            }
+        }
+
+        return untracked;
+    }
+
+    /** DESCRIPTION -- status
+     *  Displays what branches currently exist, and marks the current branch with a *.
+     *  Also displays what files have been staged for addition or removal.
+     *  An example of the exact format it should follow is as follows.
+     *  === Branches ===
+     *  === Staged Files ===
+     *  === Removed Files ===
+     *  === Modifications Not Staged For Commit ===
+     *  === Untracked Files ===
+     */
+    public static void status() {
+        // 当前头提交文件
+        File currheadfile = Utils.readObject(HEAD, File.class);
+        // 读取暂存区
+        Blobs StagingArea = new Blobs(INDEX);
+        // 读取头提交
+        Commit head = readHeadCommit();
+        // 读取头提交追踪文件
+        TreeMap<String, String> trackingFiles = head.getTrackingTree().getAddedFiles();
+        // 读取工作目录文件
+        List<String> cwdFiles = Utils.plainFilenamesIn(Repository.CWD);
+
+        // 输出分支状态
+        branchStatus(currheadfile);
+        // 输出add暂存区状态
+        addStageStatus(StagingArea);
+        // 输出remove暂存区状态
+        rmStageStatus(StagingArea);
+        // 输出未暂存的文件
+        unstagedStatus(StagingArea, trackingFiles, cwdFiles);
+        // 输出未追踪的文件
+        ArrayList<String> untracked = untrackedStatus(trackingFiles, cwdFiles);
+        printStatus("=== Untracked Files ===", untracked);
+    }
+
+    /** DESCRIPTION -- rm-branch
+     * Deletes the branch with the given name.
+     * This only means to delete the pointer associated with the branch;
+     * it does not mean to delete all commits that were created under the branch, or anything like that.
+     */
+    public static void rmBranch(String branchName) {
+        // 获取当前所处分支名
+        String currBranchName = Utils.readObject(HEAD, File.class).getName();
+        // 删除分支未当前所处分支，抛出异常退出
+        if (currBranchName.equals(branchName)) {
+            Utils.exitWithError("Cannot remove the current branch.");
+        }
+        // 要删除分支不存在，抛出异常退出
+        if (!branchExists(branchName)) {
+            Utils.exitWithError("A branch with that name does not exist.");
+        }
+        // 否则删除.gitlet/refs/heads目录下对应的分支文件
+        File deleteBranchFile = Utils.join(HEADS_DIR, branchName);
+        deleteBranchFile.delete();
+    }
+
+    /** DESCRIPTION -- reset
+     * Checks out all the files tracked by the given commit.
+     * Removes tracked files that are not present in that commit.
+     * Also moves the current branch’s head to that commit node.
+     * See the intro for an example of what happens to the head pointer after using reset.
+     * The [commit id] may be abbreviated as for checkout. The staging area is cleared.
+     * The command is essentially checkout of an arbitrary commit that also changes the current branch head.
+     * @param commitID
+     */
+    public static void reset(String commitID) {
+        // 读取给定ID对应的提交
+        Commit c = readCommitWithID(commitID);
+        // 如果不存在这样的提交，抛出异常并退出
+        if (c == null) {
+            Utils.exitWithError("No commit with that id exists.");
+        }
+
+        // 读取给定提交追踪文件
+        TreeMap<String, String> commitTrackingTree = c.getTrackingTree().getAddedFiles();
+        // 读取头提交
+        Commit currCommit = readHeadCommit();
+        // 读取头提交追踪文件
+        TreeMap<String, String> currCommitTrackingTree = currCommit.getTrackingTree().getAddedFiles();
+
+        // 重置工作目录文件到给定提交
+        resetCWDfiles(currCommitTrackingTree, commitTrackingTree);
+
+        // 如果分支不等，改写HEAD指向分支
+        File newHead = Utils.join(HEADS_DIR, c.getBranch());
+        Utils.writeObject(HEAD, newHead);
+        // 改写头提交所处Commit ID
+        Utils.writeObject(newHead, commitID);
+    }
+
+    /**辅助函数：为给定分支和当前分支寻找分割点
+     * @param branchName
+     * @return
+     */
+    private static Commit findSplitPoint(String branchName) {
+        Commit c;
+        // 如果给定分支是master，我们从当前分支找到第一个分支名为master的父提交
+        if (branchName.equals("master")) {
+            c = readHeadCommit();
+        }
+        // 否则从branchName的最新提交找到第一个分支名为master的父提交
+        else {
+            String branchHeadID = Utils.readContentsAsString(Utils.join(HEADS_DIR, branchName));
+            c = readCommitWithID(branchHeadID);
+        }
+
+        while (!branchName.equals("master") && c.getParent() != null) {
             c = c.getParent();
         }
 
-        // 如果找到了对应提交
-        if (c.isSameID(ID)) {
-
-            // 获取提交追踪文件树
-            Blobs b = c.getTrackingTree();
-            String fileID = b.find(filename)[0];
-            if (fileID != null) {
-                overrideFile(fileID, filename);
-            }
-            else {
-                Utils.exitWithError("File does not exist in that commit.");
-            }
-        }
-        else {
-            Utils.exitWithError("No commit with that id exists.");
-        }
+        return c;
     }
 
+    /**
+     * @param splitPointTracking 分割点所追踪的文件
+     * @param branchTracking     分支头提交所追踪的文件
+     * @return 返回文件比较结果：0-修改，1-删除，2-保持相同, 3-新增
+     */
+    private static ArrayList<TreeMap<String, String>> compareFiles(TreeMap<String, String> splitPointTracking, TreeMap<String, String> branchTracking) {
+        ArrayList<TreeMap<String, String>> compareRes = new ArrayList<>();
+
+        // 初始化ArrayList中的每个TreeMap
+        for (int i = 0; i < 4; i++) {
+            TreeMap<String, String> treeMap = new TreeMap<>();
+            // 添加元素到TreeMap
+            compareRes.add(treeMap);
+        }
+
+        for (Map.Entry<String, String> entry : splitPointTracking.entrySet()) {
+            String findRes = branchTracking.get(entry.getKey());
+            int putIndex;
+            if (findRes == null) {
+                putIndex = 1;
+            }
+            else {
+                branchTracking.remove(entry.getKey());
+                if (findRes.equals(entry.getValue())) {
+                    putIndex = 2;
+                }
+                else {
+                    putIndex = 0;
+                }
+            }
+            compareRes.get(putIndex).put(entry.getKey(), entry.getValue());
+        }
+        compareRes.set(3, branchTracking);
+        return compareRes;
+    }
+
+    private static void rewriteFile(String filename, String content) {
+        // 将新的内容重写进入文件
+        File newFile = new File(filename);
+        if (newFile.exists()) {
+            newFile.delete();
+        }
+        Utils.writeContents(newFile, content);
+    }
+
+    /** 根据给定的文件内容哈希值，如果文件存在则覆盖其内容，否则创建新文件写入。
+     * @param filename
+     * @param newSha1
+     */
+    private static void changeFileBaseOnNewSha1(String filename, String newSha1) {
+        String newContent = readContentWithSha1(newSha1);
+        // 将新的内容重写进入文件
+        rewriteFile(filename, newContent);
+    }
+
+
+    private static String readContentWithSha1(String sha1) {
+        if (sha1 == null) {
+            return "";
+        }
+        File f = Utils.join(OBJECTS_DIR, sha1.substring(0,2), sha1.substring(2));
+        String content = Utils.readContentsAsString(f);
+        return content;
+    }
+
+    private static String confilictMessage(String currContent, String givenContent) {
+        return "<<<<<<< HEAD\n" +
+        currContent + "=======\n"
+        + givenContent + ">>>>>>>";
+    }
+
+    private static void writeConflict(String filename, String currSha1, String givenSha1) {
+        String currContent = readContentWithSha1(currSha1);
+        String givenContent = readContentWithSha1(givenSha1);
+        String conflictMessage = confilictMessage(currContent, givenContent);
+        // 重写冲突文件
+        rewriteFile(filename, conflictMessage);
+    }
+
+    /** 寻找当前分支和给定分支中相对于它们的公共祖先，修改冲突的部分：
+     * 1. 在一个分支删除而另一个没删除；
+     * 2. 在两个分支都修改，但内容不一；
+     * 3. 在两个分支都新增，但内容不一。
+     * @param currBranchCmpRes      当前分支和分割点的比较结果：0-修改，1-删除，2-保持相同, 3-新增
+     * @param branchCmpRes          当前分支和分割点的比较结果：0-修改，1-删除，2-保持相同, 3-新增
+     * @return key:filename-value[file content in curr branch,file content in given branch]
+     */
+    private static boolean solveConflict(ArrayList<TreeMap<String, String>> currBranchCmpRes, ArrayList<TreeMap<String, String>> branchCmpRes) {
+        boolean conflictExists = false;
+        // 在当前分支删除，给定分支未删除
+        for (Map.Entry<String, String> e : currBranchCmpRes.get(1).entrySet()) {
+            String findRes = branchCmpRes.get(1).get(e.getKey());
+            if (findRes == null) {
+                writeConflict(e.getKey(), e.getValue(), null);
+                conflictExists = true;
+            }
+        }
+        // 在给定分支删除，在当前分支未删除
+        for (Map.Entry<String, String> e : branchCmpRes.get(1).entrySet()) {
+            String findRes = currBranchCmpRes.get(1).get(e.getKey());
+            if (findRes == null) {
+                writeConflict(e.getKey(), null, e.getValue());
+            }
+        }
+        // 在双分支都修改但内容不一
+        for (Map.Entry<String, String> e : currBranchCmpRes.get(0).entrySet()) {
+            String findRes = currBranchCmpRes.get(0).get(e.getKey());
+            if (findRes == null) {
+                writeConflict(e.getKey(), null, e.getValue());
+            }
+        }
+        // 在双分支都新增但内容不一
+        for (Map.Entry<String, String> e : currBranchCmpRes.get(3).entrySet()) {
+            String findRes = currBranchCmpRes.get(3).get(e.getKey());
+            if (findRes == null) {
+                writeConflict(e.getKey(), null, e.getValue());
+            }
+        }
+        return conflictExists;
+    }
+
+    /** DESCRIPTION -- merge
+     *
+     * @param branchName
+     */
+    public static void merge(String branchName) {
+        // 读取暂存区
+        Blobs stagingArea = Utils.readObject(INDEX, Blobs.class);
+        // 寻找分割提交
+        Commit splitPoint = findSplitPoint(branchName);
+        // 读取当前头提交
+        String currHeadID = Utils.readContentsAsString(Utils.readObject(HEAD, File.class));
+        Commit currHead = readHeadCommit();
+        // 读取给定分支头提交
+        String branchHeadID = Utils.readContentsAsString(Utils.join(HEADS_DIR, branchName));
+        Commit branchHead = readCommitWithID(branchHeadID);
+        // 检查工作目录未追踪文件
+        ArrayList<String> untracked = untrackedStatus(currHead.getTrackingTree().getAddedFiles(), Utils.plainFilenamesIn(Repository.CWD));
+
+        // 如果分割点即给定分支头提交
+        if (splitPoint.isSameID(branchHeadID)) {
+            Utils.exitWithError("Given branch is an ancestor of the current branch.");
+        }
+
+        // 如果分割点即当前分支头提交，将当前分支头提交更新到给定分支头提交
+        if (splitPoint.isSameID(currHeadID)) {
+            File currHeadCommitFile = Utils.join(OBJECTS_DIR, currHeadID.substring(0, 2), currHeadID.substring(2));
+            Utils.writeContents(currHeadCommitFile, branchHeadID);
+            // 输出向前移动头提交的信息并退出
+            Utils.exitWithError("Current branch fast-forwarded.");
+        }
+
+        // 如果暂存区不为空，抛出异常并退出
+        if (!stagingArea.isEmpty()) {
+            Utils.exitWithError("You have uncommitted changes.");
+        }
+
+        // 如果给定分支不存在，抛出异常并退出
+        if (!branchExists(branchName)) {
+            Utils.exitWithError("A branch with that name does not exist.");
+        }
+
+        // 如果给定分支等于当前所处分支，抛出异常并退出
+        if (branchName.equals(currHead.getBranch())) {
+            Utils.exitWithError("Cannot merge a branch with itself.");
+        }
+
+        // 如果工作目录存在未跟踪的变更，抛出异常并退出
+        if (!untracked.isEmpty()) {
+            Utils.exitWithError("There is an untracked file in the way; delete it, or add and commit it first.");
+        }
+
+        // 当前分支头提交和分割点追踪文件的比较结果：0-修改，1-删除，2-保持相同, 3-新增
+        ArrayList<TreeMap<String, String>> currBranchCmpRes = compareFiles(splitPoint.getTrackingTree().getAddedFiles(), currHead.getTrackingTree().getAddedFiles());
+        // 给定分支头提交和分割点追踪文件的比较结果：0-修改，1-删除，2-保持相同, 3-新增
+        ArrayList<TreeMap<String, String>> branchCmpRes = compareFiles(splitPoint.getTrackingTree().getAddedFiles(), currHead.getTrackingTree().getAddedFiles());
+
+        // 1. 自分割点以来：
+        // 1.1 在给定分支中被修改 && 在当前分支中未被修改 => 将修改暂存
+        for (Map.Entry<String, String> e : branchCmpRes.get(0).entrySet()) {
+            String res = currBranchCmpRes.get(2).get(e.getKey());
+            if (res != null) {
+                // 用给定分支修改覆盖当前工作目录下文件
+                changeFileBaseOnNewSha1(e.getKey(), e.getValue());
+                // 将当前修改加入add暂存区
+                stagingArea.operateStagingArea(e.getKey(),"add");
+            }
+        }
+        // 1.2 不存在于分割点 && 仅存在于给定分支 => 将修改暂存
+        for (Map.Entry<String, String> e : branchCmpRes.get(3).entrySet()) {
+            changeFileBaseOnNewSha1(e.getKey(), e.getValue());
+            stagingArea.operateStagingArea(e.getKey(), "add");
+        }
+
+        // 2. 自分割点以来：
+        // 2.1 在给定分支中未修改 && 在当前分支中被修改 => 保持不动
+        // 2.2 在给定分支中被修改 && 在当前分支中被修改 && 修改相同 => 保持不动
+        // 2.3 不存在于分割点 && 仅存在于当前分支 => 保持不动
+
+        // 2.3 在给定分支中被删除 && 在当前分支中被删除 && 工作目录中存在被删除文件 => 保持不动（即仍然不被合并提交所跟踪）
+        // 2.4 存在于分割点 && 在给定分支中未修改 && 在当前分支不存在 => 保持不动（即仍然不被合并提交所跟踪）
+        // => 保持不动（即仍然不被合并提交所跟踪）=> 保持不动（即仍然不被合并提交所跟踪）
+
+
+        // 3. 自分割点以来：
+        // 3.1 存在于分割点 && 在当前分支未修改 && 在给定分支已删除 => 删除且不在merge提交中跟踪
+        for (Map.Entry<String, String> e : currBranchCmpRes.get(2).entrySet()) {
+            String findRes = branchCmpRes.get(1).get(e.getKey());
+            if (findRes != null) {
+                File deleteFile = new File(e.getKey());
+                deleteFile.delete();
+            }
+        }
+        // 3.2 存在于分割点 && 在给定分支中未修改 && 在当前分支不存在 => 删除且不在merge提交中跟踪
+
+        // 存在冲突，抛出异常并退出
+        if (solveConflict(currBranchCmpRes, branchCmpRes)) {
+            Utils.exitWithError("Encountered a merge conflict.");
+        }
+
+        // 否则新建提交
+        Commit c = new Commit(currHead, branchHead);
+        c.saveCommit();
+    }
 }
