@@ -65,6 +65,10 @@ public class Command {
      * and all commits in all repositories will trace back to it.
      */
     public static void init() {
+        if (Repository.GITLET_DIR.exists()) {
+            Utils.exitWithError("A Gitlet version-control system already exists in the current directory.");
+        }
+
         // 初始化.gitlet/
         if (Repository.setupPersistence()) {
             // 创建初始提交
@@ -489,10 +493,15 @@ public class Command {
 
     }
 
-    private static ArrayList<String> untrackedStatus(TreeMap<String, String> trackingFiles, List<String> cwdFiles) {
+    private static ArrayList<String> untrackedStatus(Blobs StagingArea, TreeMap<String, String> trackingFiles, List<String> cwdFiles) {
         // 存在于工作目录且不存在于追踪树的文件
         ArrayList<String> untracked = new ArrayList<>();
         for (String curr_filename : cwdFiles) {
+            // 如果文件存在于暂存区，跳过
+            String[] findRes = StagingArea.find(curr_filename);
+            if (findRes[0] != null || findRes[1] != null) {
+                continue;
+            }
             if (trackingFiles.get(curr_filename) == null) {
                 untracked.add(curr_filename);
             }
@@ -532,7 +541,7 @@ public class Command {
         // 输出未暂存的文件
         unstagedStatus(StagingArea, trackingFiles, cwdFiles);
         // 输出未追踪的文件
-        ArrayList<String> untracked = untrackedStatus(trackingFiles, cwdFiles);
+        ArrayList<String> untracked = untrackedStatus(StagingArea,trackingFiles, cwdFiles);
         printStatus("=== Untracked Files ===", untracked);
     }
 
@@ -751,7 +760,7 @@ public class Command {
         String branchHeadID = Utils.readContentsAsString(Utils.join(HEADS_DIR, branchName));
         Commit branchHead = readCommitWithID(branchHeadID);
         // 检查工作目录未追踪文件
-        ArrayList<String> untracked = untrackedStatus(currHead.getTrackingTree().getAddedFiles(), Utils.plainFilenamesIn(Repository.CWD));
+        ArrayList<String> untracked = untrackedStatus(stagingArea, currHead.getTrackingTree().getAddedFiles(), Utils.plainFilenamesIn(Repository.CWD));
 
         // 如果分割点即给定分支头提交
         if (splitPoint.isSameID(branchHeadID)) {

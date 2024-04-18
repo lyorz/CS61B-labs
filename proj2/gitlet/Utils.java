@@ -252,7 +252,7 @@ class Utils {
         if (message != null && !message.equals("")) {
             System.out.println(message);
         }
-        System.exit(-1);
+        System.exit(0);
     }
 
     /** 给定timestamp(ms)，输出格式为“”的格式化时间字符串 */
