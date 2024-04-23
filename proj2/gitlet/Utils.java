@@ -268,4 +268,14 @@ class Utils {
 
         return formattedDate;
     }
+
+    public static boolean deleteFile(File file) {
+        if (!file.exists()) {
+            return false;
+        }
+        return file.delete();
+    }
+    public static boolean deleteFile(String filename) {
+        return deleteFile(new File(filename));
+    }
 }

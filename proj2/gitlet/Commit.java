@@ -90,7 +90,6 @@ public class Commit implements Serializable {
     public Commit(Commit currHead, Commit givenHead) {
         // 读取头提交文件对象
         File commitfile = Utils.readObject(HEAD, File.class);
-        //
         Blobs newTree = currHead.getBlobsofTree();
 
         this.parent = currHead.ID;
@@ -101,7 +100,7 @@ public class Commit implements Serializable {
         this.branch = currHead.branch;
         this.ID = Utils.sha1(this.message, this.timestamp, this.parent, this.sencondParent, this.tree);
         saveTree(newTree);
-
+        // 改写HEAD
         Utils.writeObject(HEAD, commitfile);
         Utils.writeContents(commitfile, this.ID);
     }

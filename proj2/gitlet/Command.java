@@ -104,6 +104,8 @@ public class Command {
         if (findRes[1] != null) {
             // 则取消删除并退出
             b.remove(addFile);
+            // 保存暂存区状态
+            b.saveBlobs(INDEX);
             System.exit(0);
         }
 
@@ -166,21 +168,6 @@ public class Command {
         Commit c = new Commit(message);
         c.saveCommit();
         clearStagingArea();
-    }
-
-    /**
-     * 从给定提交开始向前输出log信息
-     * @param commit 给定提交
-     * @param parent 给定提交的父提交
-     */
-    private static void printLog(Commit commit, Commit parent) {
-        // 输出log信息
-        while (parent != null) {
-            System.out.println(commit.getLog());
-            commit = parent;
-            parent = commit.getParent();
-        }
-        System.out.println(commit.getLog());
     }
 
     /** DESCRIPTION -- log
@@ -405,17 +392,17 @@ public class Command {
         List<String> cwdFiles = Utils.plainFilenamesIn(Repository.CWD);
         // 读取工作目录下未被追踪文件
         ArrayList<String> untracked = untrackedStatus(stagingArea, currTrackingTree, cwdFiles);
+        // 读取未暂存的更改
+        ArrayList<String> unstaged = unstagedStatus(stagingArea, currTrackingTree, cwdFiles);
 
         // 如果存在未追踪文件，报错并退出
-        if (!untracked.isEmpty()) {
+        if (!untracked.isEmpty() || !unstaged.isEmpty()) {
             Utils.exitWithError("There is an untracked file in the way; delete it, or add and commit it first.");
         }
 
         // 删除所有追踪文件
-        if (cwdFiles != null) {
-            for (String filename : cwdFiles) {
-                Utils.restrictedDelete(filename);
-            }
+        for (String filename : cwdFiles) {
+            Utils.deleteFile(filename);
         }
 
         // 重写签出所跟踪的所有文件
@@ -466,7 +453,7 @@ public class Command {
         // 重置工作目录文件到给定branch的状态
         resetCWDfiles(currBranchTrackingTree, branchTrackingTree);
         // 改写HEAD指向
-        Utils.writeObject(HEAD, Utils.join(HEADS_DIR, branchName));
+        Utils.writeObject(HEAD, branchheadfile);
     }
 
     /** DESCRIPTION -- branch
@@ -535,7 +522,7 @@ public class Command {
         printStatus("=== Removed Files ===", rmfilenames);
     }
 
-    private static void unstagedStatus(Blobs StagingArea, TreeMap<String, String> trackingFiles, List<String> cwdFiles) {
+    private static ArrayList<String> unstagedStatus(Blobs StagingArea, TreeMap<String, String> trackingFiles, List<String> cwdFiles) {
         // 记录文件状态：修改/删除未暂存
         ArrayList<String> unstaged = new ArrayList<>();
 
@@ -564,8 +551,7 @@ public class Command {
             }
         }
 
-        printStatus("=== Modifications Not Staged For Commit ===", unstaged);
-
+        return unstaged;
     }
 
     private static ArrayList<String> untrackedStatus(Blobs StagingArea, TreeMap<String, String> trackingFiles, List<String> cwdFiles) {
@@ -577,9 +563,23 @@ public class Command {
             if (findRes[0] != null || findRes[1] != null) {
                 continue;
             }
-            if (trackingFiles.get(curr_filename) == null) {
+            String trackedSha1 = trackingFiles.get(curr_filename);
+            // 新增文件，直接保存
+            if (trackedSha1 == null) {
                 untracked.add(curr_filename);
             }
+            /**
+             * // 已有文件，比较内容是否更改
+             *             else {
+             *                 // 计算当前文件内容sha1哈希
+             *                 File currFile = new File(curr_filename);
+             *                 String currSha1 = Utils.sha1(Utils.readContentsAsString(currFile));
+             *                 if (!currSha1.equals(trackedSha1)) {
+             *                     untracked.add(curr_filename);
+             *                 }
+             *             }
+             */
+
         }
 
         return untracked;
@@ -614,7 +614,8 @@ public class Command {
         // 输出remove暂存区状态
         rmStageStatus(StagingArea);
         // 输出未暂存的文件
-        unstagedStatus(StagingArea, trackingFiles, cwdFiles);
+        ArrayList<String> unstaged = unstagedStatus(StagingArea, trackingFiles, cwdFiles);
+        printStatus("=== Modifications Not Staged For Commit ===", unstaged);
         // 输出未追踪的文件
         ArrayList<String> untracked = null;
         if (cwdFiles != null) {
@@ -641,7 +642,7 @@ public class Command {
         }
         // 否则删除.gitlet/refs/heads目录下对应的分支文件
         File deleteBranchFile = Utils.join(HEADS_DIR, branchName);
-        Utils.restrictedDelete(deleteBranchFile);
+        Utils.deleteFile(deleteBranchFile);
     }
 
     /** DESCRIPTION -- reset
@@ -832,6 +833,8 @@ public class Command {
         rewriteFile(filename, conflictMessage);
         // 将冲突文件加入add暂存区
         stagingArea.operateStagingArea(filename, "add");
+        // 保存暂存区
+        stagingArea.saveBlobs(INDEX);
     }
 
     /** 寻找当前分支和给定分支中相对于它们的公共祖先，修改冲突的部分：
@@ -907,9 +910,23 @@ public class Command {
         Blobs givenTrackingTree = branchHead.getTrackingTree();
         // 读取分割点提交追踪树
         Blobs splitPointTrackingTree = splitPoint.getTrackingTree();
-
         // 检查工作目录未追踪文件
         ArrayList<String> untracked = untrackedStatus(stagingArea, currHead.getTrackingTree().getAddedFiles(), Utils.plainFilenamesIn(Repository.CWD));
+
+        // 如果给定分支等于当前所处分支，抛出异常并退出
+        if (branchName.equals(Utils.readObject(HEAD, File.class).getName())) {
+            Utils.exitWithError("Cannot merge a branch with itself.");
+        }
+
+        // 如果暂存区不为空，抛出异常并退出
+        if (!stagingArea.isEmpty()) {
+            Utils.exitWithError("You have uncommitted changes.");
+        }
+
+        // 如果工作目录存在未跟踪的变更，抛出异常并退出
+        if (!untracked.isEmpty()) {
+            Utils.exitWithError("There is an untracked file in the way; delete it, or add and commit it first.");
+        }
 
         // 如果分割点即给定分支头提交
         if (splitPoint.isSameID(branchHeadID)) {
@@ -926,20 +943,6 @@ public class Command {
             Utils.exitWithError("Current branch fast-forwarded.");
         }
 
-        // 如果暂存区不为空，抛出异常并退出
-        if (!stagingArea.isEmpty()) {
-            Utils.exitWithError("You have uncommitted changes.");
-        }
-
-        // 如果给定分支等于当前所处分支，抛出异常并退出
-        if (branchName.equals(currHead.getBranch())) {
-            Utils.exitWithError("Cannot merge a branch with itself.");
-        }
-
-        // 如果工作目录存在未跟踪的变更，抛出异常并退出
-        if (!untracked.isEmpty()) {
-            Utils.exitWithError("There is an untracked file in the way; delete it, or add and commit it first.");
-        }
 
         // 当前分支头提交和分割点追踪文件的比较结果：0-修改，1-删除，2-保持相同, 3-新增
         ArrayList<TreeMap<String, String>> currBranchCmpRes = compareFiles(splitPointTrackingTree.getAddedFiles(), currTrackingTree.getAddedFiles());
@@ -962,8 +965,7 @@ public class Command {
             String res = currBranchCmpRes.get(2).get(e.getKey());
             if (res != null) {
                 stagingArea.operateStagingArea(e.getKey(), "rm");
-                File deleteFile = new File(e.getKey());
-                Utils.restrictedDelete(deleteFile);
+                Utils.deleteFile(e.getKey());
             }
         }
         // 1.3 不存在于分割点 && 仅存在于给定分支 => 将修改暂存
@@ -992,6 +994,9 @@ public class Command {
         }
         // 3.2 存在于分割点 && 在给定分支中未修改 && 在当前分支不存在 => 删除且不在merge提交中跟踪
 
+        // 保存暂存区
+        stagingArea.saveBlobs(INDEX);
+
         // 存在冲突，抛出异常并退出
         if (solveConflict(currBranchCmpRes, branchCmpRes)) {
             Utils.exitWithError("Encountered a merge conflict.");
@@ -1000,5 +1005,7 @@ public class Command {
         // 否则新建提交
         Commit c = new Commit(currHead, branchHead);
         c.saveCommit();
+        // 清空暂存区
+        clearStagingArea();
     }
 }
