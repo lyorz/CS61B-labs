@@ -51,6 +51,7 @@ public class Commit implements Serializable {
      */
     public Commit(String message) {
         this.message = message;
+        this.sencondParent = null;
         File commitfile = new File(HEADS_DIR, "master");
         // 初始提交
         if (message.equals("initial commit")) {
@@ -81,21 +82,45 @@ public class Commit implements Serializable {
         Utils.writeContents(commitfile, this.ID);
     }
 
+    /**
+     * 构造函数，接收当前分支的头提交、给定分支的头提交，本函数特定为merge行为实例化Commit对象。
+     * @param currHead 当前分支头提交
+     * @param givenHead 给定分支头提交
+     */
     public Commit(Commit currHead, Commit givenHead) {
+        // 读取头提交文件对象
         File commitfile = Utils.readObject(HEAD, File.class);
+        //
         Blobs newTree = currHead.getBlobsofTree();
-        saveTree(newTree);
 
-        this.parent = currHead.parent;
-        this.sencondParent = givenHead.parent;
+        this.parent = currHead.ID;
+        this.sencondParent = givenHead.ID;
         this.message = "Merged " + givenHead.branch + " into " + currHead.branch +".";
         this.timestamp = Utils.getTimeString(System.currentTimeMillis());
         this.tree = Utils.sha1(newTree.toString());
         this.branch = currHead.branch;
         this.ID = Utils.sha1(this.message, this.timestamp, this.parent, this.sencondParent, this.tree);
+        saveTree(newTree);
 
         Utils.writeObject(HEAD, commitfile);
         Utils.writeContents(commitfile, this.ID);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Commit) {
+            Commit c = (Commit) obj;
+            return ID.equals(c.ID);
+        }
+        return false;
+    }
+
+    /**
+     * 判断当前提交是否为merge的结果。
+     * @return 如果当前提交是merge的结果，返回true
+     */
+    public boolean isMergedCommit() {
+        return this.sencondParent != null;
     }
 
     /** 获取当前commit所处分支 */
@@ -125,13 +150,23 @@ public class Commit implements Serializable {
      */
     public Commit getParent() {
         // 如果已经是头节点，返回null
-        if (this.parent.equals("")) {
+        if (this.parent.isEmpty()) {
             return null;
         }
         // 否则读取父commit对象
         File parentCommitFile = Utils.join(OBJECTS_DIR, this.parent.substring(0,2), this.parent.substring(2));
-        Commit parentCommit = fromfile(parentCommitFile);
-        return parentCommit;
+        return fromfile(parentCommitFile);
+    }
+
+    public Commit getSecondParent() {
+        // 如果已经是头节点，返回null
+        if (this.parent.isEmpty()) {
+            return null;
+        }
+        // 否则读取第二父提交对象
+        // 否则读取父commit对象
+        File parentCommitFile = Utils.join(OBJECTS_DIR, this.sencondParent.substring(0,2), this.sencondParent.substring(2));
+        return fromfile(parentCommitFile);
     }
 
     /** 返回当前提交的Log信息，输出统一格式的字符串。*/

@@ -47,6 +47,9 @@ public class Main {
                     Command.checkoutResetfile(args[2]);
                 }
                 else if (args.length == 4) {
+                    if (!args[2].equals("--")) {
+                        Utils.exitWithError("Incorrect operands.");
+                    }
                     Command.checkoutLastfile(args[1], args[3]);
                 }
                 else {

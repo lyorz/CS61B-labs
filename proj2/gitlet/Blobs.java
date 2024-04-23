@@ -98,7 +98,14 @@ public class Blobs implements Serializable{
             put(filename, this.addStagingArea);
         }
         else {
-            put(filename, this.rmStagingArea);
+            // 如果文件已删除
+            File f = new File(filename);
+            if (!f.exists()) {
+                rmStagingArea.put(filename, "");
+            }
+            else {
+                put(filename, this.rmStagingArea);
+            }
         }
     }
 
@@ -108,25 +115,6 @@ public class Blobs implements Serializable{
         String content = Utils.readContentsAsString(addfile);
         // 根据文件内容计算sha1哈希值
         String ID = Utils.sha1(content);
-
-
-        /** 经过对git的验证发现无需在更新同一文件的add时删除原文件的备份内容。
-         * String lastID = StagingArea.get(filename);
-         * // lastID不为空 -> 暂存区原文件经过修改；否则暂存区中没有该文件
-         *         if (lastID != null) {
-         *             if (lastID.equals(ID)) {
-         *                 return;
-         *             }
-         *             // 删除objects目录下的原文件备份
-         *             File srcDir = Utils.join(OBJECT, lastID.substring(0,2));
-         *             File srcCopy = Utils.join(srcDir, lastID.substring(2));
-         *             srcCopy.delete();
-         *
-         *             if (srcDir.listFiles().length == 0) {
-         *                 srcDir.delete();
-         *             }
-         *         }
-         */
 
         StagingArea.put(filename, ID);
 
@@ -152,25 +140,10 @@ public class Blobs implements Serializable{
         if (addStagingArea.get(key) != null) {
             addStagingArea.remove(key);
         }
-        else {
+        if (rmStagingArea.get(key) != null) {
             rmStagingArea.remove(key);
         }
     }
-
-    /** 将键为keyname的条目指向备份内容从objects目录下删除
-    public void removeCopy(String filename) {
-        String rmfileID = addStagingArea.get(filename);
-
-        File rmDir = Utils.join(OBJECT, rmfileID.substring(0,2));
-        File rmfileCopy = Utils.join(rmDir, rmfileID.substring(2));
-
-        rmfileCopy.delete();
-
-        if (rmDir.listFiles().length == 0) {
-            rmDir.delete();
-        }
-    }
-    */
 
     /** 执行commit时检查新提交所追踪内容，输入TrackingTree为当前提交追踪文件 */
     public void checkforCommit(Blobs TrackingTree) {
@@ -198,22 +171,6 @@ public class Blobs implements Serializable{
             returnItem = returnItem + addblob.getKey() + addblob.getValue();
         }
         return returnItem;
-    }
-    /** 比较暂存区和Blob对象是否存在相同条目（用于检测checkout是否合法） */
-    public boolean haveSameFile(Blobs TrackingTree) {
-        for (Map.Entry<String, String> rmblob : this.rmStagingArea.entrySet()) {
-            String[] findRes = TrackingTree.find(rmblob.getKey());
-            if (findRes[0] != null) {
-                return true;
-            }
-        }
-        for (Map.Entry<String, String> addblob : this.addStagingArea.entrySet()) {
-            String[] findRes = TrackingTree.find(addblob.getKey());
-            if (findRes[1] != null) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /** 获取add暂存区文件列表（对于追踪树来说意味着追踪文件列表） */
