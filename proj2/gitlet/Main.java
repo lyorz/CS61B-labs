@@ -12,10 +12,12 @@ public class Main {
         // 异常命令处理
         // case1: 未输入参数
         if (args.length == 0) {
-            //Utils.exitWithError("Please enter a command.");
-            throw new GitletException("Please enter a command.");
+            Utils.exitWithError("Please enter a command.");
         }
-        // case2:
+        // case2: 工作目录下未初始化.gitlet
+        if (!Repository.GITLET_DIR.exists()) {
+            Utils.exitWithError("Not in an initialized Gitlet directory.");
+        }
 
         String firstArg = args[0];
         switch(firstArg) {
@@ -71,10 +73,8 @@ public class Main {
             case "merge":
                 Command.merge(args[1]);
                 break;
-            // TODO: FILL THE REST IN
             default:
-                //Utils.exitWithError("Incorrect operands.");
-                throw new GitletException("Incorrect operands.");
+                Utils.exitWithError("No command with that name exists.");
         }
     }
     /**

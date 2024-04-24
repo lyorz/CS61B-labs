@@ -346,6 +346,21 @@ public class Command {
         }
     }
 
+    /**
+     * 检查短ID（长度小于40的sha1值）和文件名是否匹配
+     * @param ID            shortID，指长度小于40的sha1值
+     * @param filename      要检查的文件名
+     * @return              返回短ID和文件名是否匹配
+     */
+    private static boolean checkShortID(String ID, String filename) {
+        // 将ID缩减两位
+        String subID = ID.substring(2);
+        // 将filename缩减为和短ID一样长
+        String shortFilename = filename.substring(0, subID.length());
+
+        return subID.equals(shortFilename);
+    }
+
     /** DESCRIPTION -- checkout [commit id] -- [file name]
      *  Takes the version of the file as it exists in the commit with the given id,
      *  and puts it in the working directory,
@@ -353,8 +368,25 @@ public class Command {
      *  The new version of the file is not staged.
      */
     public static void checkoutLastfile(String ID, String filename) {
+        Commit c = null;
         // 获取对应ID的提交
-        Commit c = readCommitWithID(ID);
+        if (ID.length() < 40) {
+            // 存储目录一定是.gitlet/objects/ID[:2]
+            File commitDir = Utils.join(OBJECTS_DIR, ID.substring(0,2));
+            // 列举当前目录下所有文件
+            List<String> filenames = Utils.plainFilenamesIn(commitDir);
+            // 查找匹配文件
+            for (String f : filenames) {
+                if (checkShortID(ID, f)) {
+                    String totalID = ID.substring(0,2) + f;
+                    c = readCommitWithID(totalID);
+                }
+            }
+        }
+        else {
+            c = readCommitWithID(ID);
+        }
+
 
         // 如果不存在这样的提交，抛出异常并退出
         if (c == null) {
@@ -382,29 +414,13 @@ public class Command {
 
     /**
      * checkout辅助函数：使用目标提交追踪文件覆盖当前文件
-     * @param currTrackingTree      当前提交追踪文件
      * @param dstTrackingTree       目标提交追踪文件
      */
-    private static void resetCWDfiles (TreeMap<String, String> currTrackingTree, TreeMap<String, String> dstTrackingTree) {
-        // 读取暂存区
-        Blobs stagingArea = new Blobs(INDEX);
-        // 读取工作目录下文件
-        List<String> cwdFiles = Utils.plainFilenamesIn(Repository.CWD);
-        // 读取工作目录下未被追踪文件
-        ArrayList<String> untracked = untrackedStatus(stagingArea, currTrackingTree, cwdFiles);
-        // 读取未暂存的更改
-        ArrayList<String> unstaged = unstagedStatus(stagingArea, currTrackingTree, cwdFiles);
-
-        // 如果存在未追踪文件，报错并退出
-        if (!untracked.isEmpty() || !unstaged.isEmpty()) {
-            Utils.exitWithError("There is an untracked file in the way; delete it, or add and commit it first.");
+    private static void resetCWDfiles (List<String> cwdFilenames, TreeMap<String, String> dstTrackingTree) {
+        // 删除工作目录所有文件
+        for (String cwdFilename : cwdFilenames) {
+            Utils.deleteFile(cwdFilename);
         }
-
-        // 删除所有追踪文件
-        for (String filename : cwdFiles) {
-            Utils.deleteFile(filename);
-        }
-
         // 重写签出所跟踪的所有文件
         for (Map.Entry<String, String> entry : dstTrackingTree.entrySet()) {
             overrideFile(entry.getValue(), entry.getKey());
@@ -450,8 +466,26 @@ public class Command {
         // 读取当前头提交追踪文件
         TreeMap<String, String> currBranchTrackingTree = currHead.getTrackingTree().getAddedFiles();
 
+        // 读取暂存区
+        Blobs stagingArea = new Blobs(INDEX);
+        // 读取工作目录文件
+        List<String> cwdFiles = Utils.plainFilenamesIn(Repository.CWD);
+        // 获取工作目录下未被当前提交追踪的文件
+        ArrayList<String> untracked = untrackedStatus(
+                stagingArea, currBranchTrackingTree, cwdFiles
+        );
+        // 获取未暂存的修改
+        ArrayList<String> unstaged = unstagedStatus(stagingArea, currBranchTrackingTree, cwdFiles);
+
+        // 如果存在未追踪文件，则输出异常并退出
+        if (!untracked.isEmpty() || !unstaged.isEmpty()) {
+            Utils.exitWithError(
+                "There is an untracked file in the way; delete it, or add and commit it first."
+            );
+        }
+
         // 重置工作目录文件到给定branch的状态
-        resetCWDfiles(currBranchTrackingTree, branchTrackingTree);
+        resetCWDfiles(cwdFiles, branchTrackingTree);
         // 改写HEAD指向
         Utils.writeObject(HEAD, branchheadfile);
     }
@@ -668,15 +702,24 @@ public class Command {
         Commit currCommit = readHeadCommit();
         // 读取头提交追踪文件
         TreeMap<String, String> currCommitTrackingTree = currCommit.getTrackingTree().getAddedFiles();
-
+        // 读取工作目录文件
+        List<String> cwdFiles = Utils.plainFilenamesIn(Repository.CWD);
+        // 读取暂存区
+        Blobs stagingArea = new Blobs(INDEX);
+        // 获取工作目录下未追踪文件
+        ArrayList<String> untracked = untrackedStatus(stagingArea, currCommitTrackingTree, cwdFiles);
+        // 如果存在未追踪文件，抛出异常并退出
+        if (!untracked.isEmpty()) {
+            Utils.exitWithError("There is an untracked file in the way; delete it, or add and commit it first.");
+        }
         // 重置工作目录文件到给定提交
-        resetCWDfiles(currCommitTrackingTree, commitTrackingTree);
+        resetCWDfiles(cwdFiles, commitTrackingTree);
 
         // 如果分支不等，改写HEAD指向分支
         File newHead = Utils.join(HEADS_DIR, c.getBranch());
         Utils.writeObject(HEAD, newHead);
         // 改写头提交所处Commit ID
-        Utils.writeObject(newHead, commitID);
+        Utils.writeContents(newHead, commitID);
     }
 
     /**
