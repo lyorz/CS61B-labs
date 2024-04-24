@@ -14,12 +14,13 @@ public class Main {
         if (args.length == 0) {
             Utils.exitWithError("Please enter a command.");
         }
-        // case2: 工作目录下未初始化.gitlet
-        if (!Repository.GITLET_DIR.exists()) {
-            Utils.exitWithError("Not in an initialized Gitlet directory.");
-        }
+
 
         String firstArg = args[0];
+        // case2: 工作目录下未初始化.gitlet
+        if (!firstArg.equals("init") && !Repository.GITLET_DIR.exists()) {
+            Utils.exitWithError("Not in an initialized Gitlet directory.");
+        }
         switch(firstArg) {
             case "init":
                 Command.init();
