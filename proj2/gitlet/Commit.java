@@ -4,7 +4,7 @@ package gitlet;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.Date; // TODO: You'll likely use this in this class
+import java.util.*;
 
 
 /** Represents a gitlet commit object.
@@ -87,14 +87,14 @@ public class Commit implements Serializable {
      * @param currHead 当前分支头提交
      * @param givenHead 给定分支头提交
      */
-    public Commit(Commit currHead, Commit givenHead) {
+    public Commit(Commit currHead, Commit givenHead, String branchName) {
         // 读取头提交文件对象
         File commitfile = Utils.readObject(HEAD, File.class);
         Blobs newTree = currHead.getBlobsofTree();
 
         this.parent = currHead.ID;
         this.sencondParent = givenHead.ID;
-        this.message = "Merged " + givenHead.branch + " into " + currHead.branch +".";
+        this.message = "Merged " + branchName + " into " + commitfile.getName() +".";
         this.timestamp = Utils.getTimeString(System.currentTimeMillis());
         this.tree = Utils.sha1(newTree.toString());
         this.branch = currHead.branch;
@@ -229,4 +229,89 @@ public class Commit implements Serializable {
     public boolean isSameID(String ID) {
         return this.ID.equals(ID);
     }
+
+    /**
+     * 将全局所有提交描述为一张图，以邻接表结构表示。
+     * @return 返回所有提交构成的图
+     */
+    public static TreeMap<String, ArrayList<String>> getCommitGraph() {
+        TreeMap<String, ArrayList<String>> graph = new TreeMap<>();
+        // 获取.gitlet/objects/下所有目录名
+        String[] dir_list = Utils.DirnamesIn(OBJECTS_DIR);
+        // 遍历目录列表
+        for(String dir : dir_list) {
+            // 读取.gitlet/objects/dir下所有文件
+            List<String> filename_list = Utils.plainFilenamesIn(Utils.join(OBJECTS_DIR, dir));
+            if (filename_list == null) {continue;}
+            // 遍历文件
+            for (String filename : filename_list) {
+                File f = Utils.join(OBJECTS_DIR, dir, filename);
+                // 使用异常捕获，当文件记录Commit对象时，存入图
+                try {
+                    Commit c = Utils.readObject(f, Commit.class);
+                    // 如果图中还没有该节点，创建。
+                    graph.computeIfAbsent(c.ID, k -> new ArrayList<>());
+                    // 记录该提交节点的父节点:
+                    ArrayList<String> node_parents = graph.get(c.ID);
+                    // 如果是merge提交的节点，将第二父节点记录进入表
+                    if (c.isMergedCommit()) {
+                        node_parents.add(c.getSecondParent().ID);
+                    }
+                    // 如果存在父节点，将父节点记录进入表
+                    if (c.getParent() != null) {
+                        node_parents.add(c.getParent().ID);
+                    }
+                }
+                // 否则不做处理
+                catch (IllegalArgumentException ignore) { }
+            }
+        }
+        return graph;
+    }
+
+    /**
+     * 计算节点src到图中各节点的最短距离
+     * @param src   提交ID
+     * @return      记录节点src到达图中各节点的距离（不可达标记为-1，到自身距离为0）
+     */
+    public static TreeMap<String, Integer> calDistance(Commit src) {
+        TreeMap<String, ArrayList<String>> graph = getCommitGraph();
+        TreeMap<String, Integer> path_length = new TreeMap<>();
+        TreeMap<String, Boolean> flags = new TreeMap<>();
+        Queue<String> que = new LinkedList<>();
+        que.add(src.ID);
+
+        // 初始化距离表和标记数组
+        for (Map.Entry<String, ArrayList<String>> node : graph.entrySet()) {
+            if (src.ID.equals(node.getKey())) {
+                path_length.put(node.getKey(), 0);
+                flags.put(node.getKey(), true);
+                continue;
+            }
+            path_length.put(node.getKey(), -1);
+            flags.put(node.getKey(), false);
+        }
+
+        // 当队列不为空
+        while (!que.isEmpty()) {
+            // 弹出队列首端元素
+            String nodeID = que.remove();
+            // 获取当前src到该节点的距离
+            int curr_length = path_length.get(nodeID);
+            // 获取当前节点的邻居节点
+            List<String> adj = graph.get(nodeID);
+            for (String neighborNode : adj) {
+                if (!flags.get(neighborNode)) {
+                    // 更新src到邻居节点的距离
+                    path_length.put(neighborNode, curr_length+1);
+                    // 更新邻居节点访问标记
+                    flags.put(neighborNode, true);
+                    // 邻居节点入队
+                    que.add(neighborNode);
+                }
+            }
+        }
+        return path_length;
+    }
+
 }

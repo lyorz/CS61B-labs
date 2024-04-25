@@ -357,7 +357,6 @@ public class Command {
         String subID = ID.substring(2);
         // 将filename缩减为和短ID一样长
         String shortFilename = filename.substring(0, subID.length());
-
         return subID.equals(shortFilename);
     }
 
@@ -602,20 +601,7 @@ public class Command {
             if (trackedSha1 == null) {
                 untracked.add(curr_filename);
             }
-            /**
-             * // 已有文件，比较内容是否更改
-             *             else {
-             *                 // 计算当前文件内容sha1哈希
-             *                 File currFile = new File(curr_filename);
-             *                 String currSha1 = Utils.sha1(Utils.readContentsAsString(currFile));
-             *                 if (!currSha1.equals(trackedSha1)) {
-             *                     untracked.add(curr_filename);
-             *                 }
-             *             }
-             */
-
         }
-
         return untracked;
     }
 
@@ -743,51 +729,37 @@ public class Command {
         // 否则返回第一父提交
         return firstParent;
     }
-    /**
-     * 获取指定分支名的所有提交，
-     * @param branchName 指定分支名
-     * @return 提交栈，栈顶为分支初始提交
-     */
-    private static Stack<Commit> getCommitStack(String branchName) {
-        Stack<Commit> st = new Stack<>();
-        // 读取给定分支头提交ID
-        String branchHeadID = Utils.readContentsAsString(Utils.join(HEADS_DIR, branchName));
-        // 读取头提交
-        Commit head = readCommitWithID(branchHeadID);
-        // 读取父提交
-        Commit parent = getParentCommit(head, branchName);
-
-        // 头提交入栈
-        st.push(head);
-        // 从头提交向前遍历
-        while (parent != null) {
-            st.push(parent);
-            head = parent;
-            parent = getParentCommit(head, branchName);
-        }
-        return st;
-    }
 
     /**
-     * 获取当前分支和给定分支的最近公共祖先（分割点）
-     * @param branchName 给定分支名
-     * @return 分割点对应提交Commit对象
+     *
+     * @param branchName
+     * @return
      */
-    private static Commit findSplitPoint(String branchName) {
-        File currHead = Utils.readObject(HEAD, File.class);
-        // 1、 读取当前分支提交栈
-        Stack<Commit> currBranchSt = getCommitStack(currHead.getName());
-        // 2、 读取给定分支提交栈
-        Stack<Commit> givenBranchSt = getCommitStack(branchName);
-        // 3、 找到两栈中最后一个相同的提交即分割点
-        Commit splitPoint = null;
-        while (!currBranchSt.empty() && !givenBranchSt.empty() && currBranchSt.peek().equals(givenBranchSt.peek())) {
-            splitPoint = currBranchSt.pop();
-            givenBranchSt.pop();
+    private static Commit findSplitPoint(Commit currHead, Commit givenHead) {
+        // 读取当前头提交到提交图中其他所有节点的距离
+        TreeMap<String, Integer> currHeadDisTable = Commit.calDistance(currHead);
+        // 读取给定头提交到提交图中其他所有节点的距离
+        TreeMap<String, Integer> givenHeadDisTable = Commit.calDistance(givenHead);
+
+        String nearestNodeID = null;
+        int minDistance = 2*currHeadDisTable.size()+1;
+
+        for(Map.Entry<String, Integer> e : currHeadDisTable.entrySet()) {
+            int currDis = e.getValue();
+            int givenDis = givenHeadDisTable.get(e.getKey());
+
+            if (currDis == -1 || givenDis == -1) {
+                continue;
+            }
+
+            if (currDis + givenDis < minDistance) {
+                minDistance = currDis + givenDis;
+                nearestNodeID = e.getKey();
+            }
         }
-        // 返回分割点
-        return splitPoint;
+        return readCommitWithID(nearestNodeID);
     }
+
 
     /**
      * @param splitPointTracking 分割点所追踪的文件
@@ -930,15 +902,13 @@ public class Command {
      * @param branchName
      */
     public static void merge(String branchName) {
+
         // 如果给定分支不存在，抛出异常并退出
         if (!branchExists(branchName)) {
             Utils.exitWithError("A branch with that name does not exist.");
         }
-
         // 读取暂存区
         Blobs stagingArea = new Blobs(INDEX);
-        // 寻找分割提交
-        Commit splitPoint = findSplitPoint(branchName);
         // 读取当前头提交ID
         String currHeadID = Utils.readContentsAsString(Utils.readObject(HEAD, File.class));
         // 读取当前头提交
@@ -951,10 +921,15 @@ public class Command {
         Commit branchHead = readCommitWithID(branchHeadID);
         // 读取给定分支头提交追踪树
         Blobs givenTrackingTree = branchHead.getTrackingTree();
+
+        // 寻找分割提交
+        Commit splitPoint = findSplitPoint(currHead, branchHead);
         // 读取分割点提交追踪树
         Blobs splitPointTrackingTree = splitPoint.getTrackingTree();
+        // 读取工作目录文件
+        List<String> cwdFiles = Utils.plainFilenamesIn(Repository.CWD);
         // 检查工作目录未追踪文件
-        ArrayList<String> untracked = untrackedStatus(stagingArea, currHead.getTrackingTree().getAddedFiles(), Utils.plainFilenamesIn(Repository.CWD));
+        ArrayList<String> untracked = untrackedStatus(stagingArea, currTrackingTree.getAddedFiles(), cwdFiles);
 
         // 如果给定分支等于当前所处分支，抛出异常并退出
         if (branchName.equals(Utils.readObject(HEAD, File.class).getName())) {
@@ -982,6 +957,8 @@ public class Command {
             File currHeadCommitFile = Utils.readObject(HEAD, File.class);
             // 将给定分支头提交ID写入当前分支头文件
             Utils.writeContents(currHeadCommitFile, branchHeadID);
+            // 更新文件
+            resetCWDfiles(cwdFiles, givenTrackingTree.getAddedFiles());
             // 输出向前移动头提交的信息并退出
             Utils.exitWithError("Current branch fast-forwarded.");
         }
@@ -1046,7 +1023,7 @@ public class Command {
         }
 
         // 否则新建提交
-        Commit c = new Commit(currHead, branchHead);
+        Commit c = new Commit(currHead, branchHead, branchName);
         c.saveCommit();
         // 清空暂存区
         clearStagingArea();
