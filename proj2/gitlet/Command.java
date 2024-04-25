@@ -835,7 +835,7 @@ public class Command {
     private static String conflictMessage(String currContent, String givenContent) {
         return "<<<<<<< HEAD\n" +
         currContent + "=======\n"
-        + givenContent + ">>>>>>>";
+        + givenContent + ">>>>>>>\n";
     }
 
     private static void writeConflict(String filename, String currSha1, String givenSha1) {
