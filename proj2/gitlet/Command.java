@@ -1019,7 +1019,7 @@ public class Command {
 
         // 存在冲突，抛出异常并退出
         if (solveConflict(currBranchCmpRes, branchCmpRes)) {
-            Utils.exitWithError("Encountered a merge conflict.");
+            System.out.println("Encountered a merge conflict.");
         }
 
         // 否则新建提交
