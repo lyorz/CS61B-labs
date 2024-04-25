@@ -3,10 +3,7 @@ package gitlet;
 import java.io.File;
 import static gitlet.Utils.*;
 
-// TODO: any imports you need here
-
 /** Represents a gitlet repository.
- *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
  *  文件目录结构：
@@ -15,7 +12,6 @@ import static gitlet.Utils.*;
  */
 public class Repository {
     /**
-     * TODO: add instance variables here.
      *
      * List all instance variables of the Repository class here with a useful
      * comment above them describing what that variable represents and how that

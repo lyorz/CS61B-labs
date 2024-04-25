@@ -15,7 +15,9 @@ public class Command {
     private static Commit readHeadCommit() {
         File headCommitFile = Utils.readObject(HEAD, File.class);
         String headCommitID = Utils.readContentsAsString(headCommitFile);
-        return Commit.fromfile(Utils.join(OBJECTS_DIR, headCommitID.substring(0,2), headCommitID.substring(2)));
+        return Commit.fromfile(
+                Utils.join(OBJECTS_DIR, headCommitID.substring(0, 2),
+                headCommitID.substring(2)));
     }
 
 
@@ -135,13 +137,12 @@ public class Command {
      */
     private static void clearStagingArea() {
         // 清空暂存区
-        try{
+        try {
             FileWriter writer = new FileWriter(INDEX);
             writer.write("");
             writer.flush();
             writer.close();
-        }
-        catch (IOException ignore) {}
+        } catch (IOException ignore) {  }
     }
     /**DESCRIPTION -- commit
      * Saves a snapshot of tracked files in the current commit and staging area so they can be restored at a later time, creating a new commit.
@@ -214,9 +215,8 @@ public class Command {
             b.remove(rmfilename);
             // 重新保存Blobs对象
             b.saveBlobs(INDEX);
-        }
-        // 否则查找文件是否被提交所跟踪
-        else {
+        } else {
+            // 否则查找文件是否被提交所跟踪
             String[] headTrackingRes = headTrackingTree.find(rmfilename);
 
             // 如果被当前提交跟踪
@@ -229,8 +229,7 @@ public class Command {
                 if (rmFile.exists()) {
                     Utils.restrictedDelete(rmFile);
                 }
-            }
-            else {
+            } else {
                Utils.exitWithError("No reason to remove the file.");
             }
         }
@@ -240,16 +239,17 @@ public class Command {
     /** DESCRIPTION -- global-log
      *  Like log, except displays information about all commits ever made.
      *  The order of the commits does not matter.
-     *  Hint: there is a useful method in gitlet.Utils that will help you iterate over files within a directory.
+     *  Hint:
+     *  there is a useful method in gitlet.Utils that will help you iterate over files within a directory.
      * */
     public static void globalLog() {
         // 获取.gitlet/objects/下所有目录名
         String[] dir_list = Utils.DirnamesIn(OBJECTS_DIR);
         // 遍历目录列表
-        for(String dir : dir_list) {
+        for (String dir : dir_list) {
             // 读取.gitlet/objects/dir下所有文件
             List<String> filename_list = Utils.plainFilenamesIn(Utils.join(OBJECTS_DIR, dir));
-            if (filename_list == null) {continue;}
+            if (filename_list == null) { continue; }
             // 遍历文件
             for (String filename : filename_list) {
                 File f = Utils.join(OBJECTS_DIR, dir, filename);
@@ -257,9 +257,7 @@ public class Command {
                 try {
                     Commit c = Utils.readObject(f, Commit.class);
                     System.out.println(c.getLog());
-                }
-                // 否则不做处理
-                catch (IllegalArgumentException ignore) { }
+                } catch (IllegalArgumentException ignore) { }
             }
         }
     }
@@ -277,10 +275,10 @@ public class Command {
         // 标志是否存在message等于输入参数的提交
         boolean flag = false;
         // 遍历目录列表
-        for(String dir : dir_list) {
+        for (String dir : dir_list) {
             // 读取.gitlet/objects/dir下所有文件
             List<String> filename_list = Utils.plainFilenamesIn(Utils.join(OBJECTS_DIR, dir));
-            if (filename_list == null) {continue;}
+            if (filename_list == null) { continue; }
             // 遍历文件
             for (String filename : filename_list) {
                 File f = Utils.join(OBJECTS_DIR, dir, filename);
@@ -292,9 +290,7 @@ public class Command {
                         System.out.println(id);
                         flag = true;
                     }
-                }
-                // 否则不做处理
-                catch (IllegalArgumentException ignored) { }
+                } catch (IllegalArgumentException ignored) { }
             }
         }
         // 如果flag仍为false，输入出错误消息
@@ -317,8 +313,7 @@ public class Command {
                 writer.close();
             }
             catch (IOException ignore) {}
-        }
-        else {
+        } else {
             // 否则新建并写入
             Utils.writeContents(f, strcontent);
         }
@@ -339,9 +334,8 @@ public class Command {
         // 如果查找文件不为空
         if (fileID != null) {
             overrideFile(fileID, filename);
-        }
-        // 抛出异常
-        else {
+        } else {
+            // 抛出异常
             Utils.exitWithError("File does not exist in that commit.");
         }
     }
@@ -371,18 +365,17 @@ public class Command {
         // 获取对应ID的提交
         if (ID.length() < 40) {
             // 存储目录一定是.gitlet/objects/ID[:2]
-            File commitDir = Utils.join(OBJECTS_DIR, ID.substring(0,2));
+            File commitDir = Utils.join(OBJECTS_DIR, ID.substring(0, 2));
             // 列举当前目录下所有文件
             List<String> filenames = Utils.plainFilenamesIn(commitDir);
             // 查找匹配文件
             for (String f : filenames) {
                 if (checkShortID(ID, f)) {
-                    String totalID = ID.substring(0,2) + f;
+                    String totalID = ID.substring(0, 2) + f;
                     c = readCommitWithID(totalID);
                 }
             }
-        }
-        else {
+        } else {
             c = readCommitWithID(ID);
         }
 
@@ -415,7 +408,7 @@ public class Command {
      * checkout辅助函数：使用目标提交追踪文件覆盖当前文件
      * @param dstTrackingTree       目标提交追踪文件
      */
-    private static void resetCWDfiles (List<String> cwdFilenames, TreeMap<String, String> dstTrackingTree) {
+    private static void resetCWDfiles(List<String> cwdFilenames, TreeMap<String, String> dstTrackingTree) {
         // 删除工作目录所有文件
         for (String cwdFilename : cwdFilenames) {
             Utils.deleteFile(cwdFilename);
@@ -523,7 +516,7 @@ public class Command {
         List<String> branchfilenames = Utils.plainFilenamesIn(HEADS_DIR);
         // 获取当前所处分支
         String currheadname = currheadfile.getName();
-        System.out.println("=== Branches ===\n*"+currheadname);
+        System.out.println("=== Branches ===\n*" + currheadname);
         if (branchfilenames != null) {
             for (String branchfilename : branchfilenames) {
                 if (branchfilename.equals(currheadname)) {
@@ -576,9 +569,8 @@ public class Command {
                 if (!curr_file_sha1.equals(entry.getValue())) {
                     unstaged.add(curr_filename + " (modified)");
                 }
-            }
-            // 如果文件不存在
-            else {
+            } else {
+                // 如果文件不存在
                 // 则文件被删除且未加入暂存区
                 unstaged.add(curr_filename + " (deleted)");
             }
@@ -639,7 +631,7 @@ public class Command {
         // 输出未追踪的文件
         ArrayList<String> untracked = null;
         if (cwdFiles != null) {
-            untracked = untrackedStatus(StagingArea,trackingFiles, cwdFiles);
+            untracked = untrackedStatus(StagingArea, trackingFiles, cwdFiles);
         }
         printStatus("=== Untracked Files ===", untracked);
     }
@@ -742,9 +734,9 @@ public class Command {
         TreeMap<String, Integer> givenHeadDisTable = Commit.calDistance(givenHead);
 
         String nearestNodeID = null;
-        int minDistance = 2*currHeadDisTable.size()+1;
+        int minDistance = 2 * currHeadDisTable.size() + 1;
 
-        for(Map.Entry<String, Integer> e : currHeadDisTable.entrySet()) {
+        for (Map.Entry<String, Integer> e : currHeadDisTable.entrySet()) {
             int currDis = e.getValue();
             int givenDis = givenHeadDisTable.get(e.getKey());
 
@@ -783,16 +775,14 @@ public class Command {
             // 如果在头提交追踪文件中没找到，则文件被删除
             if (findRes == null) {
                 putIndex = 1;
-            }
-            else {
+            } else {
                 // 否则从提交树中删除该文件
                 branchTracking.remove(entry.getKey());
                 // 比较头提交和分割点中的文件内容，如果相同则未作改变
                 if (findRes.equals(entry.getValue())) {
                     putIndex = 2;
-                }
-                // 否则文件被覆盖了
-                else {
+                } else {
+                    // 否则文件被覆盖了
                     putIndex = 0;
                 }
             }
@@ -827,7 +817,7 @@ public class Command {
         if (sha1 == null) {
             return "";
         }
-        File f = Utils.join(OBJECTS_DIR, sha1.substring(0,2), sha1.substring(2));
+        File f = Utils.join(OBJECTS_DIR, sha1.substring(0, 2), sha1.substring(2));
         String content = Utils.readContentsAsString(f);
         return content;
     }
@@ -866,7 +856,7 @@ public class Command {
         for (Map.Entry<String, String> e : currBranchCmpRes.get(1).entrySet()) {
             String findRes = branchCmpRes.get(0).get(e.getKey());
             if (findRes != null) {
-                writeConflict(e.getKey(), e.getValue(), null);
+                writeConflict(e.getKey(), null, findRes);
                 conflictExists = true;
             }
         }
@@ -874,7 +864,7 @@ public class Command {
         for (Map.Entry<String, String> e : branchCmpRes.get(1).entrySet()) {
             String findRes = currBranchCmpRes.get(0).get(e.getKey());
             if (findRes != null) {
-                writeConflict(e.getKey(), null, e.getValue());
+                writeConflict(e.getKey(), findRes, e.getValue());
                 conflictExists = true;
             }
         }
@@ -977,7 +967,7 @@ public class Command {
                 // 用给定分支修改覆盖当前工作目录下文件
                 changeFileBaseOnNewSha1(e.getKey(), e.getValue());
                 // 将当前修改加入add暂存区
-                stagingArea.operateStagingArea(e.getKey(),"add");
+                stagingArea.operateStagingArea(e.getKey(), "add");
             }
         }
         // 1.2 在给定分支中被删除 && 在当前分支中未删除 => 将删除暂存并删除相应文件

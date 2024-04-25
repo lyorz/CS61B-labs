@@ -19,7 +19,6 @@ import java.util.*;
 
 import java.util.Locale;
 import java.util.TimeZone;
-import java.text.SimpleDateFormat;
 
 /** Assorted utilities.
  *

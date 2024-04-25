@@ -1,12 +1,12 @@
 package gitlet;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class Blobs implements Serializable{
+
+
+public class Blobs implements Serializable {
     /** 存储暂存区所有文件信息的文件路径 */
     private static final File  OBJECT = Utils.join(".gitlet", "objects");
     /** 添加文件暂存区 */
@@ -17,7 +17,7 @@ public class Blobs implements Serializable{
     /** 为什么创建了这样一个成员？
      * 是因为TreeMap似乎无法直接通过Utils.writeObject写入文件，所以考虑为其创建一个能够序列化的子类方便对象的读写。
      */
-    private static class blob implements Serializable{
+    private static class Blob implements Serializable {
         /** 外部对该文件做出的操作：add/rm */
         String operation;
         /** 文件名 */
@@ -25,7 +25,7 @@ public class Blobs implements Serializable{
         /** 根据filename指向文件内容计算出的sha-1哈希值。 */
         String ID;
         /** blob对象构造函数 */
-        public blob(String filename, String ID, String operation) {
+        Blob(String filename, String ID, String operation) {
             this.filename = filename;
             this.ID = ID;
             this.operation = operation;
@@ -57,11 +57,11 @@ public class Blobs implements Serializable{
         // 将add暂存区对象写入文件
         try (ObjectOutputStream outputStream = new ObjectOutputStream(new FileOutputStream(f))) {
             for (Map.Entry<String, String> entry : addStagingArea.entrySet()) {
-                blob b = new blob(entry.getKey(), entry.getValue(), "add");
+                Blob b = new Blob(entry.getKey(), entry.getValue(), "add");
                 outputStream.writeObject(b);
             }
             for (Map.Entry<String, String> entry : rmStagingArea.entrySet()) {
-                blob b = new blob(entry.getKey(), entry.getValue(), "rm");
+                Blob b = new Blob(entry.getKey(), entry.getValue(), "rm");
                 outputStream.writeObject(b);
             }
         } catch (IOException e) {
@@ -75,11 +75,10 @@ public class Blobs implements Serializable{
         try (ObjectInputStream inputStream = new ObjectInputStream(new FileInputStream(f))) {
             while (true) {
                 try {
-                    blob b = (blob) inputStream.readObject();
+                    Blob b = (Blob) inputStream.readObject();
                     if (b.operation.equals("add")) {
                         addStagingArea.put(b.filename, b.ID);
-                    }
-                    else {
+                    } else {
                         rmStagingArea.put(b.filename, b.ID);
                     }
                 } catch (EOFException e) {
@@ -96,14 +95,12 @@ public class Blobs implements Serializable{
     public void operateStagingArea(String filename, String operation) {
         if (operation.equals("add")) {
             put(filename, this.addStagingArea);
-        }
-        else {
+        } else {
             // 如果文件已删除
             File f = new File(filename);
             if (!f.exists()) {
                 rmStagingArea.put(filename, "");
-            }
-            else {
+            } else {
                 put(filename, this.rmStagingArea);
             }
         }
@@ -119,7 +116,7 @@ public class Blobs implements Serializable{
         StagingArea.put(filename, ID);
 
         // 写入新文件备份
-        File dstDir = Utils.join(OBJECT, ID.substring(0,2));
+        File dstDir = Utils.join(OBJECT, ID.substring(0, 2));
         File dstCopy = Utils.join(dstDir, ID.substring(2));
         if (!dstDir.exists()) {
             dstDir.mkdir();
@@ -149,7 +146,7 @@ public class Blobs implements Serializable{
     public void checkforCommit(Blobs TrackingTree) {
         // 当rm暂存区不为空，且内容被当前提交所追踪时，需要从新提交中移除。
         for (Map.Entry<String, String> rmblob : this.rmStagingArea.entrySet()) {
-            if (TrackingTree.addStagingArea.get(rmblob.getKey())!= null) {
+            if (TrackingTree.addStagingArea.get(rmblob.getKey()) != null) {
                 TrackingTree.addStagingArea.remove(rmblob.getKey());
             }
         }

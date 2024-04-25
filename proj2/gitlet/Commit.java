@@ -1,14 +1,11 @@
 package gitlet;
 
-// TODO: any imports you need here
-
 import java.io.File;
 import java.io.Serializable;
 import java.util.*;
 
 
 /** Represents a gitlet commit object.
- *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
  *  @author lyorz
@@ -59,18 +56,18 @@ public class Commit implements Serializable {
             this.parent = "";
             this.tree =  "";
             this.branch = "master";
-        }
-        // 非初始提交
-        else {
+        } else {
+            // 非初始提交
             // 读取父提交
             commitfile = Utils.readObject(HEAD, File.class);
-            String parentCommitID = Utils.readContentsAsString(commitfile);
-            Commit parentCommit = Commit.fromfile(Utils.join(OBJECTS_DIR, parentCommitID.substring(0,2), parentCommitID.substring(2)));
+            String parentID = Utils.readContentsAsString(commitfile);
+            File commitFile = Utils.join(OBJECTS_DIR, parentID.substring(0, 2), parentID.substring(2));
+            Commit parentCommit = Commit.fromfile(commitFile);
             Blobs newTree = parentCommit.getBlobsofTree();
 
             // 根据父提交和newBlob（暂存区及父提交内容）创建当前commit
             this.timestamp = Utils.getTimeString(System.currentTimeMillis());
-            this.parent = parentCommitID;
+            this.parent = parentID;
             this.tree = Utils.sha1(newTree.toString());
             this.branch = Utils.readObject(HEAD, File.class).getName();
 
@@ -94,7 +91,7 @@ public class Commit implements Serializable {
 
         this.parent = currHead.ID;
         this.sencondParent = givenHead.ID;
-        this.message = "Merged " + branchName + " into " + commitfile.getName() +".";
+        this.message = "Merged " + branchName + " into " + commitfile.getName() + ".";
         this.timestamp = Utils.getTimeString(System.currentTimeMillis());
         this.tree = Utils.sha1(newTree.toString());
         this.branch = currHead.branch;
@@ -136,7 +133,7 @@ public class Commit implements Serializable {
      * 路径为：.gitlet/objects/ID[:2]/ID[2:]
      */
     public void saveCommit() {
-        File outDir = Utils.join(OBJECTS_DIR, this.ID.substring(0,2));
+        File outDir = Utils.join(OBJECTS_DIR, this.ID.substring(0, 2));
         if (!outDir.exists()) {
             outDir.mkdir();
         }
@@ -153,7 +150,7 @@ public class Commit implements Serializable {
             return null;
         }
         // 否则读取父commit对象
-        File parentCommitFile = Utils.join(OBJECTS_DIR, this.parent.substring(0,2), this.parent.substring(2));
+        File parentCommitFile = Utils.join(OBJECTS_DIR, this.parent.substring(0, 2), this.parent.substring(2));
         return fromfile(parentCommitFile);
     }
 
@@ -164,7 +161,7 @@ public class Commit implements Serializable {
         }
         // 否则读取第二父提交对象
         // 否则读取父commit对象
-        File parentCommitFile = Utils.join(OBJECTS_DIR, this.sencondParent.substring(0,2), this.sencondParent.substring(2));
+        File parentCommitFile = Utils.join(OBJECTS_DIR, this.sencondParent.substring(0, 2), this.sencondParent.substring(2));
         return fromfile(parentCommitFile);
     }
 
@@ -186,7 +183,7 @@ public class Commit implements Serializable {
         Blobs TrackingTree = new Blobs();
         // 若当前提交存在跟踪文件
         if (!this.tree.equals("")) {
-            File trackingFile = Utils.join(OBJECTS_DIR, this.tree.substring(0,2),this.tree.substring(2));
+            File trackingFile = Utils.join(OBJECTS_DIR, this.tree.substring(0, 2), this.tree.substring(2));
             TrackingTree = new Blobs(trackingFile);
         }
         return TrackingTree;
@@ -207,7 +204,7 @@ public class Commit implements Serializable {
      * （保存路径为：.gitlet/objects/tree[:2]/tree[2:]）
      */
     public void saveTree(Blobs tree) {
-        File saveDir = Utils.join(OBJECTS_DIR, this.tree.substring(0,2));
+        File saveDir = Utils.join(OBJECTS_DIR, this.tree.substring(0, 2));
         File saveFile = Utils.join(saveDir, this.tree.substring(2));
 
         if (!saveDir.exists()) {
@@ -239,10 +236,10 @@ public class Commit implements Serializable {
         // 获取.gitlet/objects/下所有目录名
         String[] dir_list = Utils.DirnamesIn(OBJECTS_DIR);
         // 遍历目录列表
-        for(String dir : dir_list) {
+        for (String dir : dir_list) {
             // 读取.gitlet/objects/dir下所有文件
             List<String> filename_list = Utils.plainFilenamesIn(Utils.join(OBJECTS_DIR, dir));
-            if (filename_list == null) {continue;}
+            if (filename_list == null) { continue; }
             // 遍历文件
             for (String filename : filename_list) {
                 File f = Utils.join(OBJECTS_DIR, dir, filename);
@@ -261,9 +258,7 @@ public class Commit implements Serializable {
                     if (c.getParent() != null) {
                         node_parents.add(c.getParent().ID);
                     }
-                }
-                // 否则不做处理
-                catch (IllegalArgumentException ignore) { }
+                } catch (IllegalArgumentException ignore) { }
             }
         }
         return graph;
@@ -303,7 +298,7 @@ public class Commit implements Serializable {
             for (String neighborNode : adj) {
                 if (!flags.get(neighborNode)) {
                     // 更新src到邻居节点的距离
-                    path_length.put(neighborNode, curr_length+1);
+                    path_length.put(neighborNode, curr_length + 1);
                     // 更新邻居节点访问标记
                     flags.put(neighborNode, true);
                     // 邻居节点入队
