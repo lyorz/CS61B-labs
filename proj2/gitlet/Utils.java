@@ -21,7 +21,6 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 /** Assorted utilities.
- *
  * Give this file a good read as it provides several useful utility functions
  * to save you some time.
  *
@@ -162,12 +161,7 @@ class Utils {
 
     /** Filter out all but plain files. */
     private static final FilenameFilter PLAIN_FILES =
-        new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return new File(dir, name).isFile();
-            }
-        };
+            (dir, name) -> new File(dir, name).isFile();
 
     /** Returns a list of the names of all plain files in the directory DIR, in
      *  lexicographic order as Java Strings.  Returns null if DIR does
@@ -194,8 +188,7 @@ class Utils {
      *
      */
     static String[] DirnamesIn(File dir) {
-        String[] files = dir.list();
-        return files;
+        return dir.list();
     }
 
     /* OTHER FILE UTILITIES */
@@ -248,7 +241,7 @@ class Utils {
     }
 
     public static void exitWithError(String message) {
-        if (message != null && !message.equals("")) {
+        if (message != null && !message.isEmpty()) {
             System.out.println(message);
         }
         System.exit(0);
@@ -261,11 +254,7 @@ class Utils {
 
         // 创建 Date 对象
         Date date = new Date(timestamp);
-
-        // 格式化时间为字符串
-        String formattedDate = sdf.format(date);
-
-        return formattedDate;
+        return sdf.format(date);
     }
 
     public static boolean deleteFile(File file) {

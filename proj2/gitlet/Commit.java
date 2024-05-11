@@ -12,44 +12,38 @@ import java.util.*;
  */
 public class Commit implements Serializable {
     /**
-     * TODO: add instance variables here.
      *
      * List all instance variables of the Commit class here with a useful
      * comment above them describing what that variable represents and how that
      * variable is used. We've provided one example for `message`.
      */
-    static final File OBJECTS_DIR = Utils.join(".gitlet", "objects");
-    static final File HEAD = Utils.join(".gitlet", "HEAD");
-    private static final File INDEX = Utils.join(".gitlet", "index");
-
-    private static final File HEADS_DIR = Utils.join(".gitlet", "refs", "heads");
     /** The message of this Commit. */
-    private String message;
+    private final String message;
 
     /** commit所处分支 */
-    private String branch;
+    private final String branch;
 
     /** commit创建时的时间戳：从1970-01-01 00:00:00 至当前时间的毫秒数*/
-    private String timestamp;
+    private final String timestamp;
 
     /** 当前commit的父节点sha-1哈希值 */
-    private String parent;
+    private final String parent;
 
     /** 当前Commit的父节点sha-1哈希值（专用于merge提交） */
-    private String sencondParent;
+    private final String secondParent;
 
     /** 当前Commit对象的sha-1哈希值 */
-    private String ID;
+    private final String ID;
 
     /** 当前Commit下，记录所有文件快照的sha-1哈希值*/
-    private String tree;
+    private final String tree;
     /** 构造函数，接收message，实例化Commit对象
      * （由于默认初始提交message为“init commit”所以可以区分初始提交和其他提交）
      */
     public Commit(String message) {
         this.message = message;
-        this.sencondParent = null;
-        File commitfile = new File(HEADS_DIR, "master");
+        this.secondParent = null;
+        File commitfile = new File(Repository.HEADS_DIR, "master");
         // 初始提交
         if (message.equals("initial commit")) {
             this.timestamp = Utils.getTimeString(0);
@@ -59,23 +53,22 @@ public class Commit implements Serializable {
         } else {
             // 非初始提交
             // 读取父提交
-            commitfile = Utils.readObject(HEAD, File.class);
+            commitfile = Utils.readObject(Repository.HEAD, File.class);
             String parentID = Utils.readContentsAsString(commitfile);
-            File commitFile = Utils.join(OBJECTS_DIR, parentID.substring(0, 2), parentID.substring(2));
-            Commit parentCommit = Commit.fromfile(commitFile);
-            Blobs newTree = parentCommit.getBlobsofTree();
+            Commit parentCommit = readCommitWithID(parentID);
+            Blobs newTree = parentCommit.getBlobsOfTree();
 
             // 根据父提交和newBlob（暂存区及父提交内容）创建当前commit
             this.timestamp = Utils.getTimeString(System.currentTimeMillis());
             this.parent = parentID;
             this.tree = Utils.sha1(newTree.toString());
-            this.branch = Utils.readObject(HEAD, File.class).getName();
+            this.branch = Utils.readObject(Repository.HEAD, File.class).getName();
 
             saveTree(newTree);
         }
         this.ID = Utils.sha1(this.message, this.timestamp, this.parent, this.tree);
         // 改写HEAD
-        Utils.writeObject(HEAD, commitfile);
+        Utils.writeObject(Repository.HEAD, commitfile);
         Utils.writeContents(commitfile, this.ID);
     }
 
@@ -86,22 +79,28 @@ public class Commit implements Serializable {
      */
     public Commit(Commit currHead, Commit givenHead, String branchName) {
         // 读取头提交文件对象
-        File commitfile = Utils.readObject(HEAD, File.class);
-        Blobs newTree = currHead.getBlobsofTree();
+        File commitfile = Utils.readObject(Repository.HEAD, File.class);
+        Blobs newTree = currHead.getBlobsOfTree();
 
         this.parent = currHead.ID;
-        this.sencondParent = givenHead.ID;
+        this.secondParent = givenHead.ID;
         this.message = "Merged " + branchName + " into " + commitfile.getName() + ".";
         this.timestamp = Utils.getTimeString(System.currentTimeMillis());
         this.tree = Utils.sha1(newTree.toString());
         this.branch = currHead.branch;
-        this.ID = Utils.sha1(this.message, this.timestamp, this.parent, this.sencondParent, this.tree);
+        this.ID = Utils.sha1(this.message, this.timestamp, this.parent, this.secondParent, this.tree);
         saveTree(newTree);
         // 改写HEAD
-        Utils.writeObject(HEAD, commitfile);
+        Utils.writeObject(Repository.HEAD, commitfile);
         Utils.writeContents(commitfile, this.ID);
     }
 
+
+    /**
+     * 比较调用对象和传入对象是否相等
+     * @param obj   对比对象
+     * @return      若调用对象和传入对象相同，返回true
+     */
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof Commit) {
@@ -116,7 +115,7 @@ public class Commit implements Serializable {
      * @return 如果当前提交是merge的结果，返回true
      */
     public boolean isMergedCommit() {
-        return this.sencondParent != null;
+        return this.secondParent != null;
     }
 
     /** 获取当前commit所处分支 */
@@ -124,8 +123,14 @@ public class Commit implements Serializable {
         return this.branch;
     }
 
+    public static Commit readCommitWithID(String commitID) {
+        File commitDir = Utils.join(Repository.OBJECTS_DIR, commitID.substring(0, 2));
+        File commitFile = Utils.join(commitDir, commitID.substring(2));
+        return fromFile(commitFile);
+    }
+
     /** 从输入文件f中读取Commit对象 */
-    public static Commit fromfile(File f) {
+    public static Commit fromFile(File f) {
         return Utils.readObject(f, Commit.class);
     }
 
@@ -133,7 +138,7 @@ public class Commit implements Serializable {
      * 路径为：.gitlet/objects/ID[:2]/ID[2:]
      */
     public void saveCommit() {
-        File outDir = Utils.join(OBJECTS_DIR, this.ID.substring(0, 2));
+        File outDir = Utils.join(Repository.OBJECTS_DIR, this.ID.substring(0, 2));
         if (!outDir.exists()) {
             outDir.mkdir();
         }
@@ -149,9 +154,7 @@ public class Commit implements Serializable {
         if (this.parent.isEmpty()) {
             return null;
         }
-        // 否则读取父commit对象
-        File parentCommitFile = Utils.join(OBJECTS_DIR, this.parent.substring(0, 2), this.parent.substring(2));
-        return fromfile(parentCommitFile);
+        return readCommitWithID(this.parent);
     }
 
     public Commit getSecondParent() {
@@ -160,9 +163,7 @@ public class Commit implements Serializable {
             return null;
         }
         // 否则读取第二父提交对象
-        // 否则读取父commit对象
-        File parentCommitFile = Utils.join(OBJECTS_DIR, this.sencondParent.substring(0, 2), this.sencondParent.substring(2));
-        return fromfile(parentCommitFile);
+        return readCommitWithID(this.secondParent);
     }
 
     /** 返回当前提交的Log信息，输出统一格式的字符串。*/
@@ -182,8 +183,9 @@ public class Commit implements Serializable {
     public Blobs getTrackingTree() {
         Blobs TrackingTree = new Blobs();
         // 若当前提交存在跟踪文件
-        if (!this.tree.equals("")) {
-            File trackingFile = Utils.join(OBJECTS_DIR, this.tree.substring(0, 2), this.tree.substring(2));
+        if (!this.tree.isEmpty()) {
+            File trackingDir = Utils.join(Repository.OBJECTS_DIR, this.tree.substring(0, 2));
+            File trackingFile = Utils.join(trackingDir, this.tree.substring(2));
             TrackingTree = new Blobs(trackingFile);
         }
         return TrackingTree;
@@ -192,10 +194,10 @@ public class Commit implements Serializable {
     /** 返回新提交追踪文件列表的Blobs对象。
      * （同时考虑当前提交所追踪的文件，并根据暂存区进行增减。）
      */
-    public Blobs getBlobsofTree() {
-        Blobs StagingTree = new Blobs(INDEX);
+    public Blobs getBlobsOfTree() {
+        Blobs StagingTree = new Blobs(Repository.INDEX);
         Blobs TrackingTree = getTrackingTree();
-        StagingTree.checkforCommit(TrackingTree);
+        StagingTree.checkForCommit(TrackingTree);
 
         return TrackingTree;
     }
@@ -204,7 +206,7 @@ public class Commit implements Serializable {
      * （保存路径为：.gitlet/objects/tree[:2]/tree[2:]）
      */
     public void saveTree(Blobs tree) {
-        File saveDir = Utils.join(OBJECTS_DIR, this.tree.substring(0, 2));
+        File saveDir = Utils.join(Repository.OBJECTS_DIR, this.tree.substring(0, 2));
         File saveFile = Utils.join(saveDir, this.tree.substring(2));
 
         if (!saveDir.exists()) {
@@ -214,17 +216,12 @@ public class Commit implements Serializable {
         tree.saveBlobs(saveFile);
     }
 
-    /** 若输入message和当前提交相同，则打印出当前提交ID，并返回true */
+    /** 若输入message和当前提交相同，则返回当前提交ID */
     public String sameMessage(String message) {
         if (this.message.equals(message)) {
             return this.ID;
         }
         return null;
-    }
-
-    /** 判断输入ID是否等于当前提交 */
-    public boolean isSameID(String ID) {
-        return this.ID.equals(ID);
     }
 
     /**
@@ -234,15 +231,15 @@ public class Commit implements Serializable {
     public static TreeMap<String, ArrayList<String>> getCommitGraph() {
         TreeMap<String, ArrayList<String>> graph = new TreeMap<>();
         // 获取.gitlet/objects/下所有目录名
-        String[] dir_list = Utils.DirnamesIn(OBJECTS_DIR);
+        String[] dir_list = Utils.DirnamesIn(Repository.OBJECTS_DIR);
         // 遍历目录列表
         for (String dir : dir_list) {
             // 读取.gitlet/objects/dir下所有文件
-            List<String> filename_list = Utils.plainFilenamesIn(Utils.join(OBJECTS_DIR, dir));
+            List<String> filename_list = Utils.plainFilenamesIn(Utils.join(Repository.OBJECTS_DIR, dir));
             if (filename_list == null) { continue; }
             // 遍历文件
             for (String filename : filename_list) {
-                File f = Utils.join(OBJECTS_DIR, dir, filename);
+                File f = Utils.join(Repository.OBJECTS_DIR, dir, filename);
                 // 使用异常捕获，当文件记录Commit对象时，存入图
                 try {
                     Commit c = Utils.readObject(f, Commit.class);

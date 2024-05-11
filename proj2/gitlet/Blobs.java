@@ -7,12 +7,10 @@ import java.util.TreeMap;
 
 
 public class Blobs implements Serializable {
-    /** 存储暂存区所有文件信息的文件路径 */
-    private static final File  OBJECT = Utils.join(".gitlet", "objects");
     /** 添加文件暂存区 */
-    private TreeMap<String, String> addStagingArea;
+    private final TreeMap<String, String> addStagingArea;
     /** 删除文件暂存区 */
-    private TreeMap<String, String> rmStagingArea;
+    private final TreeMap<String, String> rmStagingArea;
 
     /** 为什么创建了这样一个成员？
      * 是因为TreeMap似乎无法直接通过Utils.writeObject写入文件，所以考虑为其创建一个能够序列化的子类方便对象的读写。
@@ -44,7 +42,7 @@ public class Blobs implements Serializable {
         if (!f.exists() || f.length() == 0) {
             return;
         }
-        fromfile(f);
+        fromFile(f);
     }
 
     /** 判断暂存区是否为空 */
@@ -70,7 +68,7 @@ public class Blobs implements Serializable {
     }
 
     /** 从文件f中读取暂存区/提交追踪文件树内容 */
-    private void fromfile(File f) {
+    private void fromFile(File f) {
         // 从文件中逐个读取blob对象，并存入哈希表blobs
         try (ObjectInputStream inputStream = new ObjectInputStream(new FileInputStream(f))) {
             while (true) {
@@ -90,6 +88,7 @@ public class Blobs implements Serializable {
         }
 
     }
+
 
     /** 根据输入operation将filename添加进入add/rm暂存区 */
     public void operateStagingArea(String filename, String operation) {
@@ -116,7 +115,7 @@ public class Blobs implements Serializable {
         StagingArea.put(filename, ID);
 
         // 写入新文件备份
-        File dstDir = Utils.join(OBJECT, ID.substring(0, 2));
+        File dstDir = Utils.join(Repository.OBJECTS_DIR, ID.substring(0, 2));
         File dstCopy = Utils.join(dstDir, ID.substring(2));
         if (!dstDir.exists()) {
             dstDir.mkdir();
@@ -143,31 +142,31 @@ public class Blobs implements Serializable {
     }
 
     /** 执行commit时检查新提交所追踪内容，输入TrackingTree为当前提交追踪文件 */
-    public void checkforCommit(Blobs TrackingTree) {
+    public void checkForCommit(Blobs TrackingTree) {
         // 当rm暂存区不为空，且内容被当前提交所追踪时，需要从新提交中移除。
-        for (Map.Entry<String, String> rmblob : this.rmStagingArea.entrySet()) {
-            if (TrackingTree.addStagingArea.get(rmblob.getKey()) != null) {
-                TrackingTree.addStagingArea.remove(rmblob.getKey());
+        for (Map.Entry<String, String> rmBlob : this.rmStagingArea.entrySet()) {
+            if (TrackingTree.addStagingArea.get(rmBlob.getKey()) != null) {
+                TrackingTree.addStagingArea.remove(rmBlob.getKey());
             }
         }
         // 当add暂存区不为空，需要加入新提交
-        for (Map.Entry<String, String> addblob : this.addStagingArea.entrySet()) {
-            TrackingTree.operateStagingArea(addblob.getKey(), "add");
+        for (Map.Entry<String, String> addBlob : this.addStagingArea.entrySet()) {
+            TrackingTree.operateStagingArea(addBlob.getKey(), "add");
         }
         TrackingTree.rmStagingArea.clear();
     }
 
     /** 返回Blobs对象成员的字符串形式 */
     public String toString() {
-        String returnItem = "";
-        for (Map.Entry<String, String> rmblob : this.rmStagingArea.entrySet()) {
-            returnItem = returnItem + rmblob.getKey() + rmblob.getValue();
+        StringBuilder returnItem = new StringBuilder();
+        for (Map.Entry<String, String> rmBlob : this.rmStagingArea.entrySet()) {
+            returnItem.append(rmBlob.getKey()).append(rmBlob.getValue());
         }
         // 当add暂存区不为空，需要加入新提交
-        for (Map.Entry<String, String> addblob : this.addStagingArea.entrySet()) {
-            returnItem = returnItem + addblob.getKey() + addblob.getValue();
+        for (Map.Entry<String, String> addBlob : this.addStagingArea.entrySet()) {
+            returnItem.append(addBlob.getKey()).append(addBlob.getValue());
         }
-        return returnItem;
+        return returnItem.toString();
     }
 
     /** 获取add暂存区文件列表（对于追踪树来说意味着追踪文件列表） */

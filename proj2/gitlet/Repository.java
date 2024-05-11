@@ -28,6 +28,9 @@ public class Repository {
     public static final File REFS_DIR = join(GITLET_DIR, "refs");
     /** The .gitlet/refs/heads directory. */
     public static final File HEADS_DIR = join(REFS_DIR, "heads");
+
+    public static final File INDEX = join(GITLET_DIR, "index");
+    public static final File HEAD = join(GITLET_DIR, "head");
     public static boolean setupPersistence() {
         if (!GITLET_DIR.exists()) {
             GITLET_DIR.mkdir();
